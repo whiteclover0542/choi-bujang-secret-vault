@@ -128,7 +128,10 @@
     $('cancelEdit').addEventListener('click', resetEditor);
 
     function render(next) {
+      const sameUser = session?.user?.id === next?.user?.id;
       session = next;
+      // 토큰 갱신·창 포커스 때도 이벤트가 오므로, 사용자가 바뀔 때만 화면을 다시 그립니다.
+      if (sameUser && next) return;
       resetEditor();
       $('editor').hidden = !session;
       $('login').hidden = Boolean(session);
