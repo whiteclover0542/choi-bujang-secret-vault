@@ -3,6 +3,16 @@ const REPO = /^[A-Za-z0-9._-]{1,100}$/u;
 const SHA = /^[a-f0-9]{40}$/iu;
 const HOST = /^[a-z0-9](?:[a-z0-9-]*[a-z0-9])?\.vercel\.app$/iu;
 
+function originalApiUrl(value) {
+  try {
+    const url = new URL(value);
+    return url.protocol === 'https:' && !url.username && !url.password && !url.search && !url.hash
+      && url.href === value;
+  } catch {
+    return false;
+  }
+}
+
 export function deploymentIdentity(env, config) {
   const owner = env.VERCEL_GIT_REPO_OWNER;
   const repo = env.VERCEL_GIT_REPO_SLUG;
@@ -29,5 +39,7 @@ export function deploymentIdentity(env, config) {
     // 3단계 이후 허용 경로를 배포 정보에도 공개합니다(경로 이름만, 비밀값 없음).
     ...(Array.isArray(config.allowedRoutes) && config.allowedRoutes.length
       ? { allowedRoutes: config.allowedRoutes.filter(route => typeof route === 'string') } : {}),
+    // 5단계 이후 원본 자료 주소(쿼리·계정정보 없는 HTTPS 경로만)를 공개합니다.
+    ...(originalApiUrl(config.originalApiUrl) ? { originalApiUrl: config.originalApiUrl } : {}),
   };
 }
