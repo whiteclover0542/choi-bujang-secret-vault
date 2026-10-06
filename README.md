@@ -69,3 +69,16 @@
 - DB 권한(`supabase/stage4-rls.sql`): `public, anon, authenticated`의 권한을 모두 회수한 뒤 `authenticated`에만 SELECT·INSERT·UPDATE·DELETE를 주고, 네 동작 모두 `auth.uid() = owner_id`인 행만 허용하는 RLS 정책을 둡니다. 적용 전후 `information_schema.role_table_grants`와 `has_table_privilege`로 대조합니다. 앱 API는 서버 전용 키를 쓰므로 RLS는 Data API 직접 접근에 대한 마지막 방어선입니다.
 - 자기 점검: 무로그인 API 요청과 anon 키 Data API 직접 조회가 거부되는지 기록합니다. A·B 로그인 교차 점검은 비밀번호가 필요해 `npm run bundle`에서는 실행하지 않습니다.
 - 확인: B로 로그인한 창에서 A 메모가 보이지 않고, A 메모 id로 GET·PUT·DELETE를 보내면 403이어야 합니다. A·B 각자 자기 메모 추가·수정·삭제는 유지됩니다.
+
+## 5단계: 자료 요청을 서버 한곳으로
+
+- 브라우저의 직접 자료 호출 점검(만들기 1): 메모를 Supabase에서 직접 읽거나 고치는 브라우저 코드는 없었습니다(4단계까지도 메모는 모두 `/api/notes`를 거침).
+- 화면 코드에서 Supabase 주소·publishable key·SDK를 뺐습니다. 로그인·로그아웃도 서버 함수가 대신합니다.
+  - `POST /api/auth/login` `{email,password}` → `{access_token,expires_at,email}` (서버 전용 키로 Supabase Auth 호출, refresh token은 돌려주지 않음)
+  - `POST /api/auth/logout` (Bearer) → 204, 그 세션의 refresh token 폐기
+  - 브라우저는 access token을 그 탭의 `sessionStorage`에만 두고, 만료(약 1시간) 뒤 다시 로그인합니다. CSP `connect-src`는 `'self'`만 허용합니다.
+- 메모 API의 로그인·소유자 검사(3·4단계)는 그대로입니다.
+- DB 권한(`supabase/stage5-revoke.sql`): notes 테이블의 PUBLIC·anon·authenticated 권한을 모두 회수합니다. 적용 전후 `information_schema.role_table_grants`와 `has_table_privilege`로 대조합니다. RLS와 본인 행 정책은 이중 방어로 남깁니다.
+- 원본 자료 주소(`aleph.config.json`의 `originalApiUrl`): `https://pdexkcgclglxyiqybjrl.supabase.co/rest/v1/notes`. 공개 키로 직접 불러도 메모가 나오지 않아야 합니다.
+- `/aleph.json`에 `allowedRoutes`(메모 API 경로)를 함께 냅니다.
+- 자기 점검의 anon 직접 조회는 `SUPABASE_PUBLISHABLE_KEY` 환경변수를 주고 `npm run bundle`을 실행할 때만 보냅니다. 없으면 미실행으로 기록합니다.

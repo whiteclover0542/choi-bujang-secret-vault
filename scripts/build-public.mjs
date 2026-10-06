@@ -16,10 +16,6 @@ if (config.step === 1) {
   await copyFile(source, output);
   console.log('실습용 공개 자료를 public/data.json에 복사했습니다.');
 }
-// 3단계: 로그인 화면이 쓰는 공식 Supabase 브라우저 SDK를 같은 출처에서 내보냅니다(CSP script-src 'self').
-await mkdir(resolve(root, 'public', 'vendor'), { recursive: true });
-await copyFile(resolve(root, 'node_modules', '@supabase', 'supabase-js', 'dist', 'umd', 'supabase.js'),
-  resolve(root, 'public', 'vendor', 'supabase.js'));
 if (!process.argv.includes('--local')) {
   const identity = deploymentIdentity(process.env, config);
   await writeFile(resolve(root, 'public', 'aleph.json'),

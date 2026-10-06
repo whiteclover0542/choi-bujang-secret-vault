@@ -26,5 +26,8 @@ export function deploymentIdentity(env, config) {
     publicAppUrl: `https://${host.toLowerCase()}`,
     judgeIssuer: config.judgeIssuer,
     sampleMarker: config.sampleMarker,
+    // 3단계 이후 허용 경로를 배포 정보에도 공개합니다(경로 이름만, 비밀값 없음).
+    ...(Array.isArray(config.allowedRoutes) && config.allowedRoutes.length
+      ? { allowedRoutes: config.allowedRoutes.filter(route => typeof route === 'string') } : {}),
   };
 }

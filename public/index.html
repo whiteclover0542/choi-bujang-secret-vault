@@ -25,10 +25,10 @@
 </head>
 <body>
   <main>
-    <div class="eyebrow">BYTE BACK · 3단계 진짜 로그인</div>
+    <div class="eyebrow">BYTE BACK · 5단계 자료 요청을 서버 한곳으로</div>
     <h1>점령된 자료실</h1>
     <p>아래 기록은 모두 실습을 위해 만든 가상 자료입니다.</p>
-    <div class="notice">메모는 서버 DB에 있습니다. 서버가 로그인 토큰을 직접 확인합니다. 로그인하면 내 가상 메모를 추가·수정·삭제할 수 있습니다. 아직 남의 메모 차단(소유자 검사)은 없고 4단계에서 막습니다.</div>
+    <div class="notice">메모는 서버 DB에 있습니다. 로그인과 메모 요청은 모두 이 사이트의 서버 함수(/api/…)만 거칩니다. 서버가 로그인 토큰과 메모 소유자를 확인하고, 본인 메모만 읽고 추가·수정·삭제할 수 있습니다.</div>
     <form id="login">
       <input id="email" type="email" autocomplete="username" placeholder="이메일" required>
       <input id="password" type="password" autocomplete="current-password" placeholder="비밀번호" required>
@@ -44,12 +44,10 @@
     </form>
     <ul id="notes" aria-live="polite"><li>가상 자료를 불러오는 중입니다.</li></ul>
   </main>
-  <script src="/vendor/supabase.js"></script>
   <script type="module">
-    // 공개용 값만 둡니다. 서버 전용 키는 Vercel 환경변수에만 있습니다.
-    const SUPABASE_URL = 'https://pdexkcgclglxyiqybjrl.supabase.co';
-    const SUPABASE_PUBLISHABLE_KEY = 'sb_publishable_jGXCpsnlDe2CeorlqHbKvQ_7zaq5evq';
-    const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY);
+    // 브라우저는 Supabase 주소·키를 모릅니다. 로그인도 메모도 같은 출처의 서버 함수만 부릅니다.
+    // 토큰은 이 탭의 sessionStorage에만 둡니다. ponytail: 자동 갱신 없음, 만료(약 1시간) 뒤 다시 로그인.
+    const SESSION_KEY = 'vault-session';
     const $ = id => document.getElementById(id);
     const list = $('notes');
 
@@ -128,30 +126,39 @@
     $('cancelEdit').addEventListener('click', resetEditor);
 
     function render(next) {
-      const sameUser = session?.user?.id === next?.user?.id;
       session = next;
-      // 토큰 갱신·창 포커스 때도 이벤트가 오므로, 사용자가 바뀔 때만 화면을 다시 그립니다.
-      if (sameUser && next) return;
+      try {
+        if (next) sessionStorage.setItem(SESSION_KEY, JSON.stringify(next));
+        else sessionStorage.removeItem(SESSION_KEY);
+      } catch { /* 저장소를 못 쓰면 이 페이지에서만 로그인 유지 */ }
       resetEditor();
       $('editor').hidden = !session;
       $('login').hidden = Boolean(session);
       $('who').hidden = !session;
-      $('whoText').textContent = session ? session.user.email + ' 로 로그인됨' : '';
+      $('whoText').textContent = session ? session.email + ' 로 로그인됨' : '';
       loadNotes();
     }
 
     $('login').addEventListener('submit', async event => {
       event.preventDefault();
       $('authError').textContent = '';
-      const { error } = await supabase.auth.signInWithPassword({ email: $('email').value, password: $('password').value });
+      const response = await fetch('/api/auth/login', { method: 'POST', cache: 'no-store',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email: $('email').value, password: $('password').value }) });
       $('password').value = '';
-      if (error) $('authError').textContent = '로그인 실패: ' + error.message;
+      const result = await response.json().catch(() => ({}));
+      if (!response.ok) return void ($('authError').textContent = '로그인 실패: ' + (result.message ?? 'HTTP ' + response.status));
+      render(result);
     });
     $('logout').addEventListener('click', async () => {
-      const { error } = await supabase.auth.signOut();
-      if (error) $('authError').textContent = '로그아웃 실패: ' + error.message;
+      const response = await api('/api/auth/logout', { method: 'POST' });
+      if (!response.ok) $('authError').textContent = '로그아웃 처리 중 오류 (HTTP ' + response.status + ')';
+      render(null);
     });
-    supabase.auth.onAuthStateChange((_event, session) => render(session));
+
+    let saved = null;
+    try { saved = JSON.parse(sessionStorage.getItem(SESSION_KEY)); } catch { /* 없음 */ }
+    render(saved && saved.expires_at * 1000 > Date.now() ? saved : null);
   </script>
 </body>
 </html>
