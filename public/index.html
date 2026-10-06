@@ -15,38 +15,140 @@
     ul { list-style: none; display: grid; gap: 12px; padding: 0; }
     li { border: 1px solid #51667c; border-radius: 14px; padding: 17px 19px; background: #1a2a3d; }
     strong { display: block; font-size: 18px; margin-bottom: 5px; }
-    li span { color: #bfd0e5; }
+    li span { display: block; color: #bfd0e5; margin-bottom: 8px; }
+    form, .who { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; margin: 18px 0; }
+    input, button { font: inherit; padding: 9px 12px; border-radius: 10px; border: 1px solid #51667c; background: #1a2a3d; color: #ecf4ff; }
+    button { cursor: pointer; background: #2b4a66; }
+    .error { color: #ffb3c0; }
+    [hidden] { display: none !important; }
   </style>
 </head>
 <body>
   <main>
-    <div class="eyebrow">BYTE BACK · 2단계 자료를 코드 밖으로</div>
+    <div class="eyebrow">BYTE BACK · 3단계 진짜 로그인</div>
     <h1>점령된 자료실</h1>
-    <p>지금은 보호 장치가 없는 상태입니다. 아래 기록은 모두 실습을 위해 만든 가상 자료입니다.</p>
-    <div class="notice">메모는 이제 코드가 아닌 서버 DB에 있습니다. 다만 서버 API(/api/notes)는 아직 로그인 없이 누구나 부를 수 있습니다. 3단계에서 막습니다.</div>
+    <p>아래 기록은 모두 실습을 위해 만든 가상 자료입니다.</p>
+    <div class="notice">메모는 서버 DB에 있습니다. 서버가 로그인 토큰을 직접 확인합니다. 로그인하면 내 가상 메모를 추가·수정·삭제할 수 있습니다. 아직 남의 메모 차단(소유자 검사)은 없고 4단계에서 막습니다.</div>
+    <form id="login">
+      <input id="email" type="email" autocomplete="username" placeholder="이메일" required>
+      <input id="password" type="password" autocomplete="current-password" placeholder="비밀번호" required>
+      <button type="submit">로그인</button>
+    </form>
+    <div class="who" id="who" hidden><span id="whoText"></span><button id="logout" type="button">로그아웃</button></div>
+    <p class="error" id="authError" role="alert"></p>
+    <form id="editor" hidden>
+      <input id="noteTitle" placeholder="메모 제목" maxlength="100" required>
+      <input id="noteBody" placeholder="가상 메모 내용" maxlength="2000">
+      <button type="submit" id="saveNote">추가</button>
+      <button type="button" id="cancelEdit" hidden>취소</button>
+    </form>
     <ul id="notes" aria-live="polite"><li>가상 자료를 불러오는 중입니다.</li></ul>
   </main>
+  <script src="/vendor/supabase.js"></script>
   <script type="module">
-    const list = document.querySelector('#notes');
-    try {
-      const response = await fetch('/api/notes', { cache: 'no-store' });
-      if (!response.ok) throw new Error('서버에서 자료를 읽을 수 없습니다.');
-      const data = await response.json();
-      if (!Array.isArray(data.notes)) throw new Error('자료 형식이 맞지 않습니다.');
-      list.replaceChildren(...data.notes.map(note => {
-        const item = document.createElement('li');
-        const title = document.createElement('strong');
-        const content = document.createElement('span');
-        title.textContent = note.title;
-        content.textContent = note.content;
-        item.append(title, content);
-        return item;
-      }));
-    } catch (error) {
+    // 공개용 값만 둡니다. 서버 전용 키는 Vercel 환경변수에만 있습니다.
+    const SUPABASE_URL = 'https://pdexkcgclglxyiqybjrl.supabase.co';
+    const SUPABASE_PUBLISHABLE_KEY = 'sb_publishable_jGXCpsnlDe2CeorlqHbKvQ_7zaq5evq';
+    const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY);
+    const $ = id => document.getElementById(id);
+    const list = $('notes');
+
+    let session = null;
+    let editingId = null;
+    const api = (path, options = {}) => fetch(path, { cache: 'no-store', ...options,
+      headers: { 'Content-Type': 'application/json', ...(session ? { Authorization: 'Bearer ' + session.access_token } : {}) } });
+
+    function showMessage(text) {
       const item = document.createElement('li');
-      item.textContent = error.message;
+      item.textContent = text;
       list.replaceChildren(item);
     }
+
+    async function loadNotes() {
+      try {
+        const response = await api('/api/notes');
+        if (!response.ok) {
+          const reason = await response.json().catch(() => ({}));
+          throw new Error((reason.message ?? '서버에서 자료를 읽을 수 없습니다.') + ' (HTTP ' + response.status + ')');
+        }
+        const data = await response.json();
+        if (!Array.isArray(data.notes)) throw new Error('자료 형식이 맞지 않습니다.');
+        if (!data.notes.length) return showMessage('메모가 없습니다.');
+        list.replaceChildren(...data.notes.map(note => {
+          const item = document.createElement('li');
+          const title = document.createElement('strong');
+          const content = document.createElement('span');
+          title.textContent = note.title;
+          content.textContent = note.body ?? note.content;
+          const edit = document.createElement('button');
+          const remove = document.createElement('button');
+          edit.textContent = '수정';
+          remove.textContent = '삭제';
+          edit.addEventListener('click', () => startEdit(note));
+          remove.addEventListener('click', () => removeNote(note.id));
+          item.append(title, content, edit, ' ', remove);
+          return item;
+        }));
+      } catch (error) {
+        showMessage(error.message);
+      }
+    }
+
+    function startEdit(note) {
+      editingId = note.id;
+      $('noteTitle').value = note.title;
+      $('noteBody').value = note.body;
+      $('saveNote').textContent = '수정 저장';
+      $('cancelEdit').hidden = false;
+    }
+
+    function resetEditor() {
+      editingId = null;
+      $('editor').reset();
+      $('saveNote').textContent = '추가';
+      $('cancelEdit').hidden = true;
+    }
+
+    async function removeNote(id) {
+      const response = await api('/api/notes/' + id, { method: 'DELETE' });
+      $('authError').textContent = response.ok ? '' : '삭제 실패 (HTTP ' + response.status + ')';
+      loadNotes();
+    }
+
+    $('editor').addEventListener('submit', async event => {
+      event.preventDefault();
+      const note = JSON.stringify({ title: $('noteTitle').value, body: $('noteBody').value });
+      const response = editingId
+        ? await api('/api/notes/' + editingId, { method: 'PUT', body: note })
+        : await api('/api/notes', { method: 'POST', body: note });
+      $('authError').textContent = response.ok ? '' : '저장 실패 (HTTP ' + response.status + ')';
+      if (response.ok) resetEditor();
+      loadNotes();
+    });
+    $('cancelEdit').addEventListener('click', resetEditor);
+
+    function render(next) {
+      session = next;
+      resetEditor();
+      $('editor').hidden = !session;
+      $('login').hidden = Boolean(session);
+      $('who').hidden = !session;
+      $('whoText').textContent = session ? session.user.email + ' 로 로그인됨' : '';
+      loadNotes();
+    }
+
+    $('login').addEventListener('submit', async event => {
+      event.preventDefault();
+      $('authError').textContent = '';
+      const { error } = await supabase.auth.signInWithPassword({ email: $('email').value, password: $('password').value });
+      $('password').value = '';
+      if (error) $('authError').textContent = '로그인 실패: ' + error.message;
+    });
+    $('logout').addEventListener('click', async () => {
+      const { error } = await supabase.auth.signOut();
+      if (error) $('authError').textContent = '로그아웃 실패: ' + error.message;
+    });
+    supabase.auth.onAuthStateChange((_event, session) => render(session));
   </script>
 </body>
 </html>

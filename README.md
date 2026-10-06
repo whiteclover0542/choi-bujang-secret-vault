@@ -47,3 +47,17 @@
 - 환경변수: Vercel Settings → Environment Variables에 `SUPABASE_URL`, `SUPABASE_SECRET_KEY`를 넣습니다.
 - 배포: `main`에 푸시하면 Vercel이 `npm run build`로 다시 배포합니다.
 - 자기 점검과 제출 묶음: `npm run bundle`.
+
+## 3단계: 진짜 로그인
+
+- 화면: Supabase Auth 이메일·비밀번호 로그인·로그아웃(공식 SDK `signInWithPassword`·`signOut`). 실패 이유를 화면에 보여 줍니다. 화면 코드에는 공개용 Project URL과 publishable key만 있고, SDK 파일은 빌드 때 `public/vendor/`로 복사합니다(CSP `script-src 'self'`).
+- 서버: 모든 메모 API가 시작 틀의 `src/verify-login.mjs`로 `Authorization: Bearer` 토큰을 검사합니다(`src/notes-api.mjs`). 토큰이 없거나 검사에 실패하면 `401 {"error":"LOGIN_REQUIRED"}`로 자료 없이 거부합니다. 브라우저가 보낸 userId·role·owner_id는 쓰지 않습니다.
+- 메모 API(`aleph.config.json`의 `allowedRoutes`):
+  - `GET /api/notes` 로그인 사용자의 메모 배열 `{notes:[{id,title,body}]}`
+  - `POST /api/notes` `{id?,title,body}` → `201 {id}` (id가 없으면 서버가 UUID 생성, owner_id는 서버가 확인한 사용자 ID)
+  - `GET /api/notes/:id` → `{id,title,body}`, 없거나 지운 뒤에는 404
+  - `PUT /api/notes/:id` `{title,body}` → 수정된 `{id,title,body}`
+  - `DELETE /api/notes/:id` → 204
+- 테이블 변경: `supabase/stage3-notes.sql`을 SQL Editor에서 한 번 실행합니다(id를 UUID로, content를 body로).
+- **남은 약점(4단계에서 고침):** `/api/notes/:id`는 로그인만 확인하고 소유자는 확인하지 않습니다. B가 A 메모의 id를 알면 읽고 고치고 지울 수 있습니다. 로그인은 신원 확인일 뿐입니다.
+- 확인: 시크릿 창에서 로그인 없이 메모가 보이지 않고, A 로그인 뒤 추가·수정·삭제가 되어야 합니다. `curl -si https://choi-bujang-secret-vault-chi.vercel.app/api/notes` → 401 JSON.

@@ -1,24 +1,31 @@
-import { createClient } from '@supabase/supabase-js';
+import { randomUUID } from 'node:crypto';
+import { UUID, dbFailed, readNoteInput, requireUser } from '../src/notes-api.mjs';
 
-// 2단계: 가상 메모를 서버 전용 키로 학습용 DB에서 읽습니다.
-// 약점: 아직 로그인 확인이 없어 이 주소를 아는 누구나 호출할 수 있습니다(3단계에서 막음).
+// GET /api/notes  : 로그인 사용자의 메모 목록
+// POST /api/notes : {id?, title, body} → 201 {id}. owner_id는 서버가 확인한 사용자 ID
 export default async function handler(request, response) {
-  response.setHeader('Cache-Control', 'no-store');
-  if (request.method !== 'GET') return response.status(405).json({ error: 'METHOD_NOT_ALLOWED' });
+  if (!['GET', 'POST'].includes(request.method)) {
+    response.setHeader('Cache-Control', 'no-store');
+    return response.status(405).json({ error: 'METHOD_NOT_ALLOWED' });
+  }
+  const auth = await requireUser(request, response);
+  if (!auth) return;
+  const { user, db } = auth;
 
-  const { SUPABASE_URL, SUPABASE_SECRET_KEY } = process.env;
-  if (!SUPABASE_URL || !SUPABASE_SECRET_KEY) {
-    console.error('notes: SUPABASE_URL 또는 SUPABASE_SECRET_KEY 환경변수가 없습니다.');
-    return response.status(500).json({ error: 'SERVER_NOT_CONFIGURED' });
+  if (request.method === 'GET') {
+    const { data, error } = await db.from('notes').select('id, title, body')
+      .eq('owner_id', user.userId).order('created_at');
+    if (error) return dbFailed(response, '목록 조회', error);
+    return response.status(200).json({ notes: data });
   }
 
-  const supabase = createClient(SUPABASE_URL, SUPABASE_SECRET_KEY, {
-    auth: { persistSession: false, autoRefreshToken: false },
-  });
-  const { data, error } = await supabase.from('notes').select('title, content').order('id');
-  if (error) {
-    console.error('notes: DB 조회 실패', error.code);
-    return response.status(502).json({ error: 'NOTES_READ_FAILED' });
+  const input = readNoteInput(request.body);
+  const id = request.body?.id ?? randomUUID();
+  if (!input || typeof id !== 'string' || !UUID.test(id)) {
+    return response.status(400).json({ error: 'INVALID_NOTE', message: 'title·body 문자열과 UUID 형식 id가 필요합니다.' });
   }
-  return response.status(200).json({ notes: data });
+  const { error } = await db.from('notes').insert({ id, owner_id: user.userId, ...input });
+  if (error?.code === '23505') return response.status(409).json({ error: 'NOTE_ID_TAKEN' });
+  if (error) return dbFailed(response, '추가', error);
+  return response.status(201).json({ id });
 }
