@@ -23,3 +23,27 @@
 [AGENTS.md](AGENTS.md)를 먼저 읽히고 한 번에 한 제작 단위만 요청하세요. 2단계부터는 자료 보호를 구현할 때 `public/data.json`을 복사하는 1단계 빌드 흐름도 함께 바꿔야 합니다. 3단계 이후의 로그인, 허용 경로, 5단계의 원본 API 주소, 6단계 이후 정책 규칙은 해당 단계 원고와 계약에 맞춰 추가합니다. 비밀번호·토큰·서버 전용 키·실제 학생 기록을 코드, Git, 제출 묶음에 넣지 않습니다.
 
 `src/decider.mjs`와 `src/detect.mjs`의 로컬 시험은 반 엔진이나 운영 심판의 결과가 아닙니다. 1단계 이후 제출 묶음 계약 `aleph.defense.submission.v2`는 `scripts/bundle.mjs`에 남아 있으며, 코딩 도구가 해당 단계의 최신 배포 주소와 Git 원격을 맞춘 뒤 사용합니다.
+
+## 2단계: 자료를 코드 밖으로
+
+- 가상 메모는 학습용 Supabase `notes` 테이블(RLS 켜짐, anon·authenticated 권한 없음)에 있습니다. 테이블을 만드는 SQL(`supabase/*.local.sql`)은 메모 문장을 담고 있어 Git에 올리지 않습니다.
+- 화면은 Vercel 서버 함수 `api/notes.js`(`/api/notes`)로 메모를 읽습니다. 함수는 Vercel 환경변수 `SUPABASE_URL`과 서버 전용 `SUPABASE_SECRET_KEY`를 씁니다. 키는 코드·브라우저 파일·응답·로그에 넣지 않습니다.
+- 공개 `/data.json`에는 메모가 없습니다.
+- **남은 약점:** `/api/notes`는 아직 로그인 확인이 없는 공개 주소라, 주소를 아는 누구나 메모를 읽을 수 있습니다. 그래서 3단계 전까지는 가상 메모만 둡니다.
+
+### 메모 문장 노출 확인 절차
+
+배포 주소는 `https://choi-bujang-secret-vault-chi.vercel.app`입니다. 네 메모 문장을 정규식 `실습용 ?가상 (과제|포트폴리오|리추얼|행정) 기록`으로 검색하고(이 README 자체는 걸리지 않음), 결과를 각각 기록합니다.
+
+1. GitHub 최신 파일: `git grep -nE "실습용 ?가상 (과제|포트폴리오|리추얼|행정) 기록" origin/main` → 결과가 없어야 합니다.
+2. 현재 배포 정적 파일: `curl -s https://choi-bujang-secret-vault-chi.vercel.app/data.json` 과 `curl -s https://choi-bujang-secret-vault-chi.vercel.app/`의 결과를 같은 정규식으로 검색 → 메모 문장이 없어야 합니다.
+3. 공개 API(남은 약점): `curl -s https://choi-bujang-secret-vault-chi.vercel.app/api/notes` → 지금은 로그인 없이 메모가 응답됩니다. 3단계에서 막아야 할 약점으로 기록합니다.
+
+**과거 노출은 해소되지 않았습니다.** 1단계 커밋(`8a09274` 등)과 그 커밋으로 만든 옛 Vercel 배포에는 메모가 그대로 남아 있습니다. 최신 파일에서 지웠다고 이력에서 사라지지 않으므로, 실제 자료였다면 노출된 것으로 보고 대응해야 합니다. 그래서 이 저장소에는 가상 메모만 둡니다.
+
+### 다시 실행하기
+
+- 테이블 준비: `supabase/*.local.sql`을 Supabase SQL Editor에서 실행합니다(Git에 없음, 로컬 보관).
+- 환경변수: Vercel Settings → Environment Variables에 `SUPABASE_URL`, `SUPABASE_SECRET_KEY`를 넣습니다.
+- 배포: `main`에 푸시하면 Vercel이 `npm run build`로 다시 배포합니다.
+- 자기 점검과 제출 묶음: `npm run bundle`.
