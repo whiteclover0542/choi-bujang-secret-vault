@@ -1,3 +1,4 @@
+import { readFile } from 'node:fs/promises';
 // The student changes this check as each stage adds an attack to the same app.
 // Never return tokens, private keys, real names, or note bodies.
 const get = (path, app) => fetch(new URL(path, app), { redirect: 'error', signal: AbortSignal.timeout(10000) });
@@ -38,7 +39,7 @@ export async function runAttackChecks(config) {
     return [{ attackId: 'anonymous_note_read', expected: '비로그인 화면에서 가상 메모를 확인',
       observed: visible ? '비로그인 요청에서 공개 가상 메모 확인 표시가 보임' : `비로그인 요청에서 확인 표시가 보이지 않음 (HTTP ${response.status})` }];
   }
-  if (config.step === 3) {
+  if (config.step === 3 || config.step === 4) {
     // 로그인 없이 보낸 요청만 직접 점검합니다. A·B 로그인 점검은 비밀번호가 필요해 여기서 실행하지 않습니다.
     const tries = [
       ['anonymous_list_read', 'GET', '/api/notes'],
@@ -56,6 +57,17 @@ export async function runAttackChecks(config) {
       const notes = await noteCount(res);
       results.push({ attackId, expected: `로그인 없는 ${method} ${path.replace(/[0-9a-f-]{36}$/u, ':id')}는 401·403 JSON으로 거부`,
         observed: `HTTP ${res.status}${json ? ' JSON' : ' 비JSON'} 응답${notes ? `, 메모 ${notes}건 노출` : ', 메모 없음'}` });
+    }
+    if (config.step === 4) {
+      // 브라우저 공개 키(anon)로 Data API의 notes 테이블을 직접 읽어 봅니다. 공개 키는 화면 코드에서 읽습니다.
+      const html = await readFile(new URL('../public/index.html', import.meta.url), 'utf8');
+      const key = /SUPABASE_PUBLISHABLE_KEY = '([^']+)'/u.exec(html)?.[1];
+      const restUrl = new URL('/rest/v1/notes?select=id&limit=1', config.identityProvider.issuer);
+      const res = await fetch(restUrl, { headers: { apikey: key, Authorization: `Bearer ${key}` }, redirect: 'error', signal: AbortSignal.timeout(10000) });
+      let rows = 0;
+      try { const data = await res.json(); rows = Array.isArray(data) ? data.length : 0; } catch { /* 비JSON은 0건 */ }
+      results.push({ attackId: 'anon_data_api_read', expected: 'anon 키로 Data API notes 직접 조회는 권한 없음으로 거부',
+        observed: `HTTP ${res.status}, 행 ${rows}건` });
     }
     return results;
   }

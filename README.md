@@ -61,3 +61,11 @@
 - 테이블 변경: `supabase/stage3-notes.sql`을 SQL Editor에서 한 번 실행합니다(id를 UUID로, content를 body로).
 - **남은 약점(4단계에서 고침):** `/api/notes/:id`는 로그인만 확인하고 소유자는 확인하지 않습니다. B가 A 메모의 id를 알면 읽고 고치고 지울 수 있습니다. 로그인은 신원 확인일 뿐입니다.
 - 확인: 시크릿 창에서 로그인 없이 메모가 보이지 않고, A 로그인 뒤 추가·수정·삭제가 되어야 합니다. `curl -si https://choi-bujang-secret-vault-chi.vercel.app/api/notes` → 401 JSON.
+
+## 4단계: 로그인해도 내 자료만
+
+- 소유자 연결: `supabase/stage4-owners.sql`이 이메일로 `auth.users`에서 A·B의 ID를 찾아 기존 가상 메모 세 건을 A에게, 한 건을 B 시험 메모로 연결합니다.
+- API 소유자 검사(`api/notes/[id].js`): 서버가 검증한 사용자 ID와 DB의 `owner_id`를 비교합니다. 없는 메모는 404, 남의 메모는 `403 {"error":"NOT_NOTE_OWNER"}`로 거부합니다. 수정은 기존 행과 새 행의 소유자가 모두 본인이어야 하며, 본문으로 `owner_id`를 바꾸려 하면 403입니다. 수정·삭제 쿼리도 `owner_id`를 함께 조건으로 겁니다. 추가는 본문의 `owner_id`·`userId`를 무시하고 확인된 ID로 저장하며, 이미 있는 id(남의 메모 포함)는 409입니다. 목록은 본인 메모만 돌려줍니다.
+- DB 권한(`supabase/stage4-rls.sql`): `public, anon, authenticated`의 권한을 모두 회수한 뒤 `authenticated`에만 SELECT·INSERT·UPDATE·DELETE를 주고, 네 동작 모두 `auth.uid() = owner_id`인 행만 허용하는 RLS 정책을 둡니다. 적용 전후 `information_schema.role_table_grants`와 `has_table_privilege`로 대조합니다. 앱 API는 서버 전용 키를 쓰므로 RLS는 Data API 직접 접근에 대한 마지막 방어선입니다.
+- 자기 점검: 무로그인 API 요청과 anon 키 Data API 직접 조회가 거부되는지 기록합니다. A·B 로그인 교차 점검은 비밀번호가 필요해 `npm run bundle`에서는 실행하지 않습니다.
+- 확인: B로 로그인한 창에서 A 메모가 보이지 않고, A 메모 id로 GET·PUT·DELETE를 보내면 403이어야 합니다. A·B 각자 자기 메모 추가·수정·삭제는 유지됩니다.

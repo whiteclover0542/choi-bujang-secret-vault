@@ -3,6 +3,7 @@ import { UUID, dbFailed, readNoteInput, requireUser } from '../src/notes-api.mjs
 
 // GET /api/notes  : 로그인 사용자의 메모 목록
 // POST /api/notes : {id?, title, body} → 201 {id}. owner_id는 서버가 확인한 사용자 ID
+// 본문의 owner_id·userId는 읽지 않습니다. 이미 있는 id(남의 메모 포함)는 409로 거부합니다.
 export default async function handler(request, response) {
   if (!['GET', 'POST'].includes(request.method)) {
     response.setHeader('Cache-Control', 'no-store');
