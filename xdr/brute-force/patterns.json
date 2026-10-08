@@ -1,0 +1,27 @@
+{
+  "schema": "aleph.xdr.patterns.v1",
+  "moduleKey": "brute-force",
+  "patterns": [
+    {
+      "id": "T1110.001",
+      "name": "같은 주소 로그인 실패 연속",
+      "condition": {
+        "mitre": "T1110",
+        "textRegex": "실패",
+        "minCount": 30
+      },
+      "evidence": "MITRE ATT&CK T1110.001(Password Guessing): 한 출발지가 짧은 시간에 비밀번호를 계속 바꿔 넣어 로그인 실패가 연달아 쌓이는 형태입니다."
+    },
+    {
+      "id": "T1110.003",
+      "name": "여러 계정에 같은 비밀번호 대입",
+      "condition": {
+        "mitre": "T1110",
+        "textRegex": "여러 계정|계정 \\d+개|같은 비밀번호|계정 이름을 바꿔",
+        "minCount": 15,
+        "minAccounts": 5
+      },
+      "evidence": "MITRE ATT&CK T1110.003(Password Spraying): 한 출발지가 흔한 비밀번호 하나를 여러 계정에 돌려 넣어 계정별 잠금을 피하는 형태입니다."
+    }
+  ]
+}

@@ -82,3 +82,11 @@
 - 원본 자료 주소(`aleph.config.json`의 `originalApiUrl`): `https://pdexkcgclglxyiqybjrl.supabase.co/rest/v1/notes`. 공개 키로 직접 불러도 메모가 나오지 않아야 합니다.
 - `/aleph.json`에 `allowedRoutes`(메모 API 경로)를 함께 냅니다.
 - 자기 점검의 anon 직접 조회는 `SUPABASE_PUBLISHABLE_KEY` 환경변수를 주고 `npm run bundle`을 실행할 때만 보냅니다. 없으면 미실행으로 기록합니다.
+
+## 보너스 xdr-01: 무차별 로그인 공격 탐지
+
+- `xdr/brute-force/read-alerts.mjs`: 경보에서 시각·주소·계정·규칙 수준·설명만 뽑습니다(비밀값 모양은 가림).
+- `xdr/brute-force/patterns.json`: MITRE ATT&CK T1110.001(같은 주소 실패 연속)·T1110.003(여러 계정에 같은 비밀번호) 두 패턴.
+- `xdr/brute-force/decide.mjs`: 패턴에 맞으면 block, T1110인데 기준 미달이면 Jev(`JEV_URL`)에게 확신도를 묻고, 응답이 없으면 alert, 그 외 record.
+- `xdr/brute-force/respond.mjs`: block 주소만 `xdr/blocklist.json`에 1시간 만료·근거 경보 번호와 함께 넣고, block·alert를 `xdr/alerts.log`에 한 줄씩 쌓습니다. 판정기 요청 계약에 출발 주소가 없어 `src/decider.mjs`는 바꾸지 않았습니다(`isBlocked`는 계약에 주소가 생기면 연결).
+- 다시 실행: `npm run xdr:run -- brute-force`(판정 → `result.json`), `node xdr/brute-force/respond.mjs`(차단 목록·알림). 로컬 연습이며 심판 판정이 아닙니다.
