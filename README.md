@@ -90,3 +90,11 @@
 - `xdr/brute-force/decide.mjs`: 패턴에 맞으면 block, T1110인데 기준 미달이면 Jev(`JEV_URL`)에게 확신도를 묻고, 응답이 없으면 alert, 그 외 record.
 - `xdr/brute-force/respond.mjs`: block 주소만 `xdr/blocklist.json`에 1시간 만료·근거 경보 번호와 함께 넣고, block·alert를 `xdr/alerts.log`에 한 줄씩 쌓습니다. 판정기 요청 계약에 출발 주소가 없어 `src/decider.mjs`는 바꾸지 않았습니다(`isBlocked`는 계약에 주소가 생기면 연결).
 - 다시 실행: `npm run xdr:run -- brute-force`(판정 → `result.json`), `node xdr/brute-force/respond.mjs`(차단 목록·알림). 로컬 연습이며 심판 판정이 아닙니다.
+
+## 보너스 xdr-02: 웹 주입 공격 탐지
+
+- `xdr/web-injection/read-alerts.mjs`: 경보에서 시각·주소·계정·규칙 수준·설명만 뽑습니다(비밀값 모양은 가림).
+- `xdr/web-injection/patterns.json`: MITRE ATT&CK T1190 아래 SQL 구문·스크립트 태그·경로 거슬러 올라가기·명령 구분자 네 패턴. 주입 구조(센서 설명 또는 두 번까지 디코딩한 요청 주소) + 반복 5번 이상 + 수준 10 이상이 함께 있어야 맞습니다.
+- `xdr/web-injection/decide.mjs`: import 없는 단일 파일. 패턴에 맞으면 block, T1190인데 기준 미달이면 Jev(`JEV_URL`, 수준·건수만 전송)에게 묻고 응답이 없으면 alert, 그 외 record.
+- `xdr/web-injection/respond.mjs`: xdr-01의 `respond`를 같은 `xdr/blocklist.json`·`xdr/alerts.log`에 연결합니다. 다른 모듈 규칙은 보존하고 같은 경보 알림은 다시 쓰지 않습니다. 판정기 운영 경로와는 연결하지 않았습니다(모의 시험).
+- 다시 실행: `npm run xdr:run -- web-injection`, `node xdr/web-injection/respond.mjs`, `node --test test/xdr-web-injection.test.mjs`. 로컬 연습이며 심판 판정이 아닙니다. Jev는 연결 정보가 없어 alert로 처리합니다.

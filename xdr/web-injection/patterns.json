@@ -1,0 +1,60 @@
+{
+  "schema": "aleph.xdr.patterns.v1",
+  "moduleKey": "web-injection",
+  "note": "textRegex는 센서 설명, urlRegex는 디코딩한 요청 주소에서 찾는 구조입니다. 둘 중 하나가 맞고 반복(minCount)·수준(minLevel)을 함께 넘어야 합니다. 숫자는 이 연습의 학습 기준이며 MITRE가 정한 값이 아닙니다.",
+  "patterns": [
+    {
+      "id": "T1190.sql",
+      "name": "SQL 구문 주입 반복",
+      "condition": {
+        "mitre": "T1190",
+        "textRegex": "SQL 구문|SQL 표식|데이터베이스 조회를 이어",
+        "urlRegex": "union\\s+(all\\s+)?select|'\\s*(or|and)\\s+['\\d]|;\\s*(drop|delete|insert|update)\\b",
+        "minCount": 5,
+        "minLevel": 10
+      },
+      "evidence": "MITRE ATT&CK T1190(Exploit Public-Facing Application): 요청 인자에 SQL 조건·연결 구문을 이어 붙여 공개 웹앱의 DB 조회를 바꾸려는 형태입니다(MOVEit 대량 악용과 같은 계열)."
+    },
+    {
+      "id": "T1190.script",
+      "name": "스크립트 태그 주입 반복",
+      "condition": {
+        "mitre": "T1190",
+        "textRegex": "스크립트 삽입|스크립트 표식",
+        "urlRegex": "<\\s*script\\b|javascript:|\\bon(error|load|mouseover)\\s*=",
+        "minCount": 5,
+        "minLevel": 10
+      },
+      "evidence": "MITRE ATT&CK T1190: 요청 인자에 스크립트 태그·이벤트 처리 구문을 넣어 공개 웹앱이 남의 화면에서 코드를 실행하게 하려는 형태입니다."
+    },
+    {
+      "id": "T1190.path",
+      "name": "경로 거슬러 올라가기 반복",
+      "condition": {
+        "mitre": "T1190",
+        "textRegex": "거슬러 올라가|경로 이탈",
+        "urlRegex": "(\\.\\.[\\/\\\\]){2,}",
+        "minCount": 5,
+        "minLevel": 10
+      },
+      "evidence": "MITRE ATT&CK T1190: 파일 인자에 ../ 를 여러 번 넣어 공개 웹앱이 허용 폴더 밖 파일을 읽게 하려는 형태입니다."
+    },
+    {
+      "id": "T1190.cmd",
+      "name": "명령 구분자 주입 반복",
+      "condition": {
+        "mitre": "T1190",
+        "textRegex": "명령 구분자",
+        "urlRegex": "[;|&`]\\s*(cat|ls|id|whoami|wget|curl|nc|sh|bash)\\b|\\$\\(",
+        "minCount": 5,
+        "minLevel": 10
+      },
+      "evidence": "MITRE ATT&CK T1190: 요청 인자에 ; | & 같은 명령 구분자와 명령을 붙여 공개 웹앱 서버에서 명령을 실행하려는 형태입니다."
+    }
+  ],
+  "notBlocked": [
+    { "case": "수업명·공지 제목에 select, script, SQL 단어가 한 번", "action": "record 또는 alert", "why": "단어 출현만으로는 주입 구조가 아니고, 정상 검색을 막게 됩니다." },
+    { "case": "따옴표·구분 문자·주입처럼 보이는 표기가 1건, 반복 없음", "action": "alert", "why": "오타·이름 검색일 수 있어 사람이 확인할 대상이지 바로 막을 근거는 아닙니다." },
+    { "case": "T1190 태그가 없는 일반 조회·화면 열기·로그아웃", "action": "record", "why": "공격 신호가 없는 정상 이벤트입니다." }
+  ]
+}

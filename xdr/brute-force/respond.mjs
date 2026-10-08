@@ -16,9 +16,9 @@ export async function isBlocked(ip, now = Date.now()) {
   return rules.find((r) => r.srcip === ip && Date.parse(r.expiresAt) > now) ?? null;
 }
 
-export async function respond(alerts, now = Date.now()) {
+export async function respond(alerts, now = Date.now(), decideFn = decide) {
   const decided = [];
-  for (const a of alerts) decided.push({ a, d: await decide(a) });
+  for (const a of alerts) decided.push({ a, d: await decideFn(a) });
 
   // 같은 주소에서 정상(record) 이벤트가 나온 적 있으면 정상 사용자일 수 있어 막지 않고 알림으로 낮춥니다.
   const normalIps = new Set(decided.filter(({ d }) => d.action === 'record').map(({ a }) => a.data?.srcip));
@@ -49,9 +49,9 @@ export async function respond(alerts, now = Date.now()) {
 }
 
 // 시험 경보를 다시 흘려 봅니다: block 주소만 막히고 나머지 주소는 통과해야 합니다.
-if (process.argv[1] === fileURLToPath(import.meta.url)) {
-  const { alerts } = JSON.parse(await readFile(new URL('../fixtures/brute-force.json', import.meta.url), 'utf8'));
-  const decided = await respond(alerts);
+export async function replay(fixture, decideFn = decide) {
+  const { alerts } = JSON.parse(await readFile(fixture, 'utf8'));
+  const decided = await respond(alerts, Date.now(), decideFn);
   let bad = 0;
   for (const { a, d } of decided) {
     const blocked = Boolean(await isBlocked(a.data?.srcip));
@@ -60,5 +60,9 @@ if (process.argv[1] === fileURLToPath(import.meta.url)) {
     console.log(`${ok ? '맞음' : '틀림'}\t${a.id}\t${a.data?.srcip}\t${d.action}\t${blocked ? '차단' : '통과'}`);
   }
   console.log(bad ? `틀린 경보 ${bad}건` : '명확한 공격 주소만 막히고 나머지는 통과합니다.');
-  if (bad) process.exit(1);
+  if (bad) process.exitCode = 1;
+}
+
+if (process.argv[1] === fileURLToPath(import.meta.url)) {
+  await replay(new URL('../fixtures/brute-force.json', import.meta.url));
 }
