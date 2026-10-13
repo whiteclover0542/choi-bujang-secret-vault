@@ -1,11 +1,41 @@
 // The student changes this check as each stage adds an attack to the same app.
 // Never return tokens, private keys, real names, or note bodies.
-import { checkDecider } from '../scripts/decider-test.mjs';
-import { fixtureRequests } from '../scripts/fixture-7.mjs';
-import { checkDetection } from '../scripts/detect-test.mjs';
+// 12단계: 심판 격리 실행기에서 불러오기가 실패하지 않도록 scripts/ 파일을 불러오지 않고 이 파일 안에서 가상 요청을 만듭니다.
+// 쓰는 것은 같은 폴더의 판정기·탐지 함수와 허용된 node:fs(readFileSync)·node:crypto(randomUUID·sha256)뿐입니다.
+import { createHash, randomUUID } from 'node:crypto';
+import { readFileSync } from 'node:fs';
 import { detect } from './detect.mjs';
-import { diffPolicy } from '../scripts/policy-restore.mjs';
 import { decide, RULE_IDS } from './decider.mjs';
+
+const sha256 = text => createHash('sha256').update(String(text).replace(/\r\n/g, '\n')).digest('hex');
+// 판정 요청 계약(docs/DECIDER_REQUEST.md) 모양의 가상 요청. 값은 scripts/fixture-7.mjs와 같습니다.
+const engineRequest = (overrides = {}) => ({
+  schema: 'aleph.decision.v1', requestId: randomUUID(), classId: 'class_fixture', projectId: 'project_fixture',
+  subjectId: 'learner_fixture', deviceId: 'a'.repeat(16), service: 'notes', method: 'GET', path: '/notes/demo',
+  route: 'GET /notes/:id', queryLength: 0, querySha256: sha256(''), at: new Date().toISOString(), policyRevision: 1,
+  deviceRegistered: true, stepUp: { verified: false, authAgeSeconds: null }, recentEvents: [],
+  signals: { source: 'judge_fixture', region: 'local', network: 'usual', hour: 14 }, ...overrides,
+});
+const SUSPICIOUS = { signals: { source: 'judge_fixture', region: 'foreign', network: 'unusual', hour: 3 },
+  recentEvents: [{ kind: 'risk_signal', ageSeconds: 60, count: 20 }] };
+// 응답이 계약의 다섯 항목·요청 ID·규칙 이름을 지키는지까지 확인합니다.
+const validDecision = (request, out) => out && typeof out === 'object'
+  && Object.keys(out).sort().join(',') === 'decision,reasonCode,requestId,ruleIds,schema'
+  && out.schema === 'aleph.decision.v1' && out.requestId === request.requestId
+  && Array.isArray(out.ruleIds) && out.ruleIds.length > 0 && out.ruleIds.every(id => RULE_IDS.includes(id));
+// 탐지 계약(docs/DETECT_EVENTS.md)의 가상 조회 사건. 값은 scripts/detect-test.mjs와 같습니다.
+const reads = (count, intervalSeconds = 2, sub = 'learner_fixture') => Array.from({ length: count }, (_, i) => ({
+  at: new Date(Date.UTC(2026, 9, 1) + i * intervalSeconds * 1000).toISOString(), method: 'GET', identity: { sub } }));
+const OBSERVE = { action: 'observe' };
+const BURST = { action: 'propose_revocation', reasonCode: 'burst_read', subject: 'learner_fixture' };
+const DETECT_CASES = [
+  ['정상 조회 30건', reads(30), OBSERVE], ['10분 안에 120건', reads(120), OBSERVE],
+  ['10분 안에 121건', reads(121), BURST], ['폭주 조회 200건', reads(200), BURST],
+  ['서로 다른 사용자 각 100건', [...reads(100), ...reads(100, 2, 'other_fixture')].sort((a, b) => a.at.localeCompare(b.at)), OBSERVE],
+  ['10분 밖으로 흩어진 조회 200건', reads(200, 7), OBSERVE],
+];
+const sameFlat = (a, b) => Boolean(a) && typeof a === 'object' && Object.keys(a).length === Object.keys(b).length
+  && Object.keys(b).every(key => a[key] === b[key]);
 const get = (path, app) => fetch(new URL(path, app), { redirect: 'error', signal: AbortSignal.timeout(10000) });
 const noteCount = async response => {
   if (!response.ok) return 0;
@@ -80,48 +110,41 @@ export async function runAttackChecks(config) {
         observed: `HTTP ${res.status}${json ? ' JSON' : ' 비JSON'} 응답${notes ? `, 메모 ${notes}건 노출` : ', 메모 없음'}` });
     }
     if (config.step >= 6) {
-      // 6·7단계: 로컬 판정기에 가상 요청을 보내 봅니다. 미등록 기기·복합 이상 접속의 실제 공격은 심판이 맡습니다.
-      const DECIDER_CHECKS = {
-        '등록 기기의 정상 요청': ['registered_device_request', '로컬 판정기: 등록 기기 정상 요청은 allow'],
-        '미등록 기기의 가상 요청': ['unregistered_device_request', '로컬 판정기: 미등록 기기 가상 요청은 deny·device_not_registered'],
-        '복합 이상 접속': ['unusual_access_step_up', '로컬 판정기: 새벽·처음 보는 네트워크·대량 요청 가상 사건은 step_up·step_up_required'],
-        '다시 확인한 복합 이상 접속': ['unusual_access_after_relogin', '로컬 판정기: 엔진이 검증한 새 로그인 뒤 같은 사건은 allow'],
-      };
-      for (const { name, passed } of await checkDecider({ decide, ruleIds: RULE_IDS })) {
-        const [attackId, expected] = DECIDER_CHECKS[name] ?? [];
-        if (!attackId) continue;
+      // 6~8단계: 로컬 판정기에 계약 모양의 가상 요청을 보내 봅니다. 미등록 기기·복합 이상 접속·구역 밖 요청의 실제 공격은 심판이 맡습니다.
+      const DECIDER_CHECKS = [
+        [6, 'registered_device_request', '로컬 판정기: 등록 기기 정상 요청은 allow', {}, 'allow'],
+        [6, 'unregistered_device_request', '로컬 판정기: 미등록 기기 가상 요청은 deny·device_not_registered', { deviceRegistered: false }, 'deny', 'device_not_registered'],
+        [7, 'unusual_access_step_up', '로컬 판정기: 새벽·처음 보는 네트워크·대량 요청 가상 사건은 step_up·step_up_required', SUSPICIOUS, 'step_up', 'step_up_required'],
+        [7, 'unusual_access_after_relogin', '로컬 판정기: 엔진이 검증한 새 로그인 뒤 같은 사건은 allow', { ...SUSPICIOUS, stepUp: { verified: true, authAgeSeconds: 60 } }, 'allow'],
+        [8, 'student_notice_update_zone', '로컬 판정기: 공지 수정은 역할 계약이 없어 deny·instructor_required', { method: 'PUT', route: 'PUT /notices/:id', path: '/notices/demo' }, 'deny', 'instructor_required'],
+        [8, 'unknown_route_zone', '로컬 판정기: 구역 목록에 없는 경로는 deny·route_not_allowed', { route: 'GET /notes/export', path: '/notes/export' }, 'deny', 'route_not_allowed'],
+      ];
+      for (const [fromStep, attackId, expected, overrides, decision, reasonCode] of DECIDER_CHECKS) {
+        if (config.step < fromStep) continue;
+        const request = engineRequest(overrides);
+        const out = await decide(request);
+        const ok = validDecision(request, out) && out.decision === decision && (!reasonCode || out.reasonCode === reasonCode);
         results.push({ attackId, expected,
-          observed: `로컬 판정기 가상 요청 결과 ${passed ? '기대와 같음' : '기대와 다름'} (심판 판정 아님)` });
+          observed: `로컬 판정기 가상 요청 ${out?.decision}·${out?.reasonCode} (${ok ? '기대와 같음' : '기대와 다름'}, 심판 판정 아님)` });
       }
-    }
-    if (config.step >= 8) {
-      // 8단계: 로컬 판정기에 구역 밖 가상 요청을 보내 봅니다(엔진 요청 모양, 심판 판정 아님).
-      const { normal } = fixtureRequests();
-      const zone = async (method, route, path) => decide({ ...normal, method, route: `${method} ${route}`, path });
-      const noticeEdit = await zone('PUT', '/notices/:id', '/notices/demo');
-      const unknown = await zone('GET', '/notes/export', '/notes/export');
-      results.push(
-        { attackId: 'student_notice_update_zone', expected: '로컬 판정기: 공지 수정은 역할 계약이 없어 deny·instructor_required',
-          observed: `로컬 판정기 가상 요청 ${noticeEdit.decision}·${noticeEdit.reasonCode} (심판 판정 아님)` },
-        { attackId: 'unknown_route_zone', expected: '로컬 판정기: 구역 목록에 없는 경로는 deny·route_not_allowed',
-          observed: `로컬 판정기 가상 요청 ${unknown.decision}·${unknown.reasonCode} (심판 판정 아님)` },
-      );
     }
     if (config.step >= 9) {
       // 9단계: 로컬 탐지 함수에 가상 조회 사건을 보내 봅니다. 실제 회수와 경과 시간은 심판이 확인합니다.
       // 제출 묶음 점검 상한(20개) 때문에 탐지 연습 6건은 한 줄로 묶어 기록합니다.
-      const cases = await checkDetection(detect);
-      const failed = cases.filter((c) => !c.passed).map((c) => c.name);
+      const failed = [];
+      for (const [name, events, want] of DETECT_CASES) if (!sameFlat(await detect(events), want)) failed.push(name);
       results.push({ attackId: 'detect_practice_cases', expected: '로컬 탐지: 같은 사용자 GET 10분 120건 초과만 propose_revocation·burst_read, 나머지 observe',
-        observed: `로컬 탐지 가상 사건 ${cases.length}건 중 ${cases.length - failed.length}건 기대와 같음${failed.length ? ` (다름: ${failed.join(', ')})` : ''} (실제 회수·심판 판정 아님)` });
+        observed: `로컬 탐지 가상 사건 ${DETECT_CASES.length}건 중 ${DETECT_CASES.length - failed.length}건 기대와 같음${failed.length ? ` (다름: ${failed.join(', ')})` : ''} (실제 회수·심판 판정 아님)` });
     }
     if (config.step >= 10) {
-      // 10단계: 검증한 정책 사본을 다시 읽어 해시를 확인하고, 현재 시험 정책과 차이를 셉니다(파일은 바꾸지 않음).
+      // 10단계: 검증한 정책 사본을 다시 읽어 해시를 확인하고, 현재 시험 정책과 같은지 봅니다(파일은 바꾸지 않음).
       let observed;
       try {
-        const diff = await diffPolicy();
-        observed = `정책 사본 ${diff.version} 해시 확인, 현재 시험 정책과 ${diff.fileSame ? '같음' : `다름(바뀔 항목 ${diff.changes.length}개)`}`;
-      } catch (error) { observed = `중단: ${error.message}`; }
+        const manifest = JSON.parse(readFileSync(new URL('../backup/policy/manifest.json', import.meta.url), 'utf8'));
+        const backupOk = sha256(readFileSync(new URL('../backup/policy/decider.mjs', import.meta.url), 'utf8')) === manifest.sha256;
+        const same = sha256(readFileSync(new URL('./decider.mjs', import.meta.url), 'utf8')) === manifest.sha256;
+        observed = backupOk ? `정책 사본 ${manifest.version} 해시 확인, 현재 시험 정책과 ${same ? '같음' : '다름'}` : `중단: 정책 사본 ${manifest.version} 해시 불일치`;
+      } catch { observed = '중단: 검증한 정책 사본을 읽을 수 없음'; }
       results.push({ attackId: 'policy_backup_verify', expected: '검증한 정책 사본의 해시가 맞고 현재 시험 정책과 같아야 함', observed });
     }
     if (config.step >= 7) {

@@ -17,6 +17,8 @@
 | ✅ | 제출 전 확인 · 12단계 저장점 커밋(`afa2207`), push·배포 확인, 실측표, `npm run bundle` |
 | ✅ | 1차 제출 (`6404afd`) — 0/100, `S12_BUNDLE_UNSUPPORTED`(격리 환경에서 `npm run bundle`이 `node:util`을 불러옴) |
 | ✅ | 수정 · `node:util`·`node:fs/promises` 제거, 쓰기 요청 점검 not_run |
+| ✅ | 2차 제출 (`33a8506`) — 45/100, 조건 4개 중 「제출 묶음 점검 기록」 실패: `runner_import_failed` (`S12_SCREEN_MISMATCH`) |
+| ✅ | 수정 · 자기 점검이 `scripts/`를 불러오지 않고 혼자 실행 |
 | ⬜ | 다시 제출, 결과 확인 |
 
 ## 완료한 일
@@ -34,3 +36,5 @@
 - 1차 심판(커밋 `6404afd`): 0/100, `S12_BUNDLE_UNSUPPORTED` — 심판 격리 환경은 node:fs·path·url·child_process(git 읽기)·crypto(randomUUID·sha256)만 허용, npm 패키지 불가, 요청은 공개 HTTPS GET·HEAD만.
 - 원인: `npm run bundle` → `src/attack-check.mjs` → `scripts/detect-test.mjs`가 `node:util`(isDeepStrictEqual)을 불러옴. 같은 경로의 `scripts/policy-restore.mjs`도 `node:fs/promises` 사용, 자기 점검이 POST·PUT 3건을 보냄.
 - 수정: `detect-test.mjs`는 평평한 결과 객체를 직접 비교(동작 같음, `detect:test` 6항목 통과), `policy-restore.mjs`는 `node:fs`의 promises 사용, 자기 점검의 쓰기 요청 3건(메모 추가·공지 수정·복원)은 보내지 않고 `not_run`. 허용 목록 밖 모듈을 막는 로더로 자기 점검 19개를 끝까지 실행해 확인.
+- 2차 심판(커밋 `33a8506`): 45/100, 「제출 묶음 점검 기록」 실패 — `npm run bundle` 마지막 출력 `runner_import_failed`. 심판 격리 실행기가 자기 점검의 불러오기 경로에서 실패한 것으로 판단(`scripts/policy-restore.mjs`의 꼬리값 붙은 동적 import·`node:fs` promises, 그 밖의 `scripts/` 파일 의존).
+- 수정: `src/attack-check.mjs`가 `scripts/`를 불러오지 않도록 판정기 가상 요청(계약 모양)·탐지 사건·정책 사본 해시 확인을 파일 안에서 직접 만듦. 불러오는 것은 `./decider.mjs`·`./detect.mjs`·`node:fs`(readFileSync)·`node:crypto`(randomUUID·createHash sha256)뿐. 점검 ID·개수(19) 그대로. 허용 밖 모듈·src→scripts 불러오기·꼬리값 import를 막는 로더로 끝까지 실행 확인.
