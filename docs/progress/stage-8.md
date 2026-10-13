@@ -17,7 +17,9 @@
 | ✅ | 저장점 준비 · `allowedRoutes` 공지 경로 3개, README 8단계 절, `step` 8, 자기 점검 8단계 확장 |
 | ✅ | 제출 전 확인 · 8단계 저장점 커밋(`547f1c8`), push·배포 확인, `npm run bundle` |
 | ✅ | 로그인 교차 점검 (운영 배포, `scripts/stage8-live-check.mjs`) 8항목 통과 |
-| ⬜ | 8단계 제출 |
+| ✅ | 1차 제출 (`c57df0d`) — 48/100, 조건 5개 중 「구역 규칙」 실패 `S08_OTHER_ZONE_ALLOWED` |
+| ✅ | 수정 · 판정기 구역에서 메모 전체 목록 `GET /notes` 제거 |
+| ⬜ | 다시 제출, 결과 확인 |
 
 ## 완료한 일
 
@@ -34,3 +36,5 @@
 - 저장점 `547f1c8` push, 운영 `/aleph.json` 커밋 `547f1c8`·step 8·공지 경로 확인. 비로그인 `GET /api/notices`·`PUT /api/notices/:id`(본문 role 포함) 모두 401.
 - `npm run bundle`: 단계 8 · 바뀐 파일 14개 · 규칙 3개(`device_registered`, `resource_zone`, `step_up_required`) · 직접 점검 14개(비로그인 401 ×6, 로컬 판정기 가상 요청 6건 기대와 같음, 실제 재로그인 차단·anon 직접 조회 미실행).
 - 로그인 교차 점검(운영 배포, 실제 요청): A·B 비밀번호를 SQL Editor에서 재설정, 학생이 `.env.local`(Git 제외)에 직접 입력. `node --env-file=.env.local scripts/stage8-live-check.mjs` 8항목 통과 — A 자기 메모 200, B의 A 메모 읽기·수정 403 `NOT_NOTE_OWNER`, A 공지 읽기 200, A·B 공지 수정(본문 role 위조) 403 `NOT_INSTRUCTOR`, 강사 공지 수정(내용 그대로) 200, 공지 경로로 메모 id 404. 토큰·비밀번호·본문 미출력, 세션 로그아웃.
+- 1차 심판(커밋 `c57df0d`): 48/100, `S08_OTHER_ZONE_ALLOWED` — 판정기가 메모 전체 목록 경로를 허용(공지 쓰기·여러 사람 자료 한꺼번에 여는 경로는 판정기에서 거부해야 함). 원인: 구역 목록의 `GET /notes`. 공지 쓰기는 이미 모두 거부 중이었음.
+- 수정: 판정기 구역에서 `GET /notes` 제거(→ `deny/route_not_allowed`). 메모 한 건 경로 4개·공지 읽기 2개만 허용. 자료 API `/api/notes`와 화면은 그대로. 시험에 전체 목록 거부와 공지 POST·PATCH·DELETE 거부 확인 추가, `node --test test/decider.test.mjs` 4개·`decider:test` 4항목·`fixture:7` 통과.

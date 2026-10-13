@@ -52,7 +52,7 @@ const ID = '11111111-1111-4111-8111-111111111111';
 test('8단계: 자기 메모 구역과 공지 읽기는 허용, 공지 수정·알 수 없는 경로는 거부합니다', async () => {
   assert.equal(await run(at('GET', '/notes/:id', `/notes/${ID}`)), 'allow/approved');
   assert.equal(await run(at('PUT', '/notes/:id', `/notes/${ID}`)), 'allow/approved');
-  assert.equal(await run(at('GET', '/notes', '/notes')), 'allow/approved');
+  assert.equal(await run(at('GET', '/notes', '/notes')), 'deny/route_not_allowed'); // 메모 전체 목록
   assert.equal(await run(at('GET', '/notices/:id', `/notices/${ID}`)), 'allow/approved');
   assert.equal(await run(at('PUT', '/notices/:id', `/notices/${ID}`)), 'deny/instructor_required');
   // 알 수 없는 경로, :id 깊이의 기능 경로, 경로 모양과 실제 경로·메서드 불일치, 쿼리로 기능 고르기
@@ -62,7 +62,11 @@ test('8단계: 자기 메모 구역과 공지 읽기는 허용, 공지 수정·�
   assert.equal(await run({ ...at('GET', '/notes/:id', `/notes/${ID}`), path: `/notices/${ID}` }), 'deny/route_not_allowed');
   assert.equal(await run({ ...at('GET', '/notes/:id', `/notes/${ID}`), method: 'PUT' }), 'deny/route_not_allowed');
   assert.equal(await run(at('GET', '/notes/:id', `/notes/${ID}/export`)), 'deny/route_not_allowed');
-  assert.equal(await run(at('GET', '/notes', '/notes', { queryLength: 12 })), 'deny/route_not_allowed');
+  assert.equal(await run(at('POST', '/notes', '/notes', { queryLength: 12 })), 'deny/route_not_allowed');
+  // 공지 쓰기는 메서드와 관계없이 모두 거부합니다.
+  for (const [method, route, path] of [['POST', '/notices', '/notices'], ['PATCH', '/notices/:id', `/notices/${ID}`], ['DELETE', '/notices/:id', `/notices/${ID}`]]) {
+    assert.equal((await decide(at(method, route, path))).decision, 'deny', `${method} ${route}`);
+  }
   // 기기 규칙이 먼저입니다.
   assert.equal(await run(at('PUT', '/notices/:id', `/notices/${ID}`, { deviceRegistered: false })), 'deny/device_not_registered');
 });

@@ -113,7 +113,7 @@
 - 자원 구역: 메모는 `note:<id>`(`/api/notes`), 강사 공지는 `notice:<id>`(`/api/notices`)로 응답에 자원 ID를 붙여 구분합니다. 기존 메모 주소·자료·화면은 그대로이고, 화면 메뉴는 바꾸지 않았습니다.
 - 공지 API: `GET /api/notices`(목록), `GET /api/notices/:id`는 로그인 사용자 누구나, `PUT /api/notices/:id`는 서버가 검증한 사용자 ID가 `instructors` 표에 있을 때만 허용하고 아니면 `403 NOT_INSTRUCTOR`입니다. 화면 메뉴·요청 본문·헤더의 role은 읽지 않습니다. 메모는 4단계 소유자 검사(`403 NOT_NOTE_OWNER`)를 유지합니다.
 - DB: `supabase/stage8-notices.sql`을 SQL Editor에서 실행해 `notices`·`instructors` 테이블을 만들고(브라우저용 역할 권한 없음, 가상 공지 1건), 강사 시험 계정은 SQL Editor에서 직접 지정합니다(이메일은 Git에 넣지 않음).
-- 판정기 규칙 `resource_zone`: 엔진이 확인한 `method`·`route`·`path`가 구역 목록과 정확히 맞을 때만 통과합니다. 메모 경로 5개·공지 읽기 2개는 허용, 공지 수정은 계약에 역할 정보가 없어 `deny`(`instructor_required`), 그 밖의 경로·`:id` 깊이의 기능 경로·경로 불일치·쿼리 있는 요청은 `deny`(`route_not_allowed`)입니다. 기기 → 구역 → 복합 이상 순서로 판정합니다. 두 이유 코드는 안내에 목록이 없어 직접 정했습니다.
+- 판정기 규칙 `resource_zone`: 엔진이 확인한 `method`·`route`·`path`가 구역 목록과 정확히 맞을 때만 통과합니다. 메모 한 건 경로 4개(`POST /notes`, `GET·PUT·DELETE /notes/:id`)·공지 읽기 2개는 허용하고, 여러 사람의 자료를 한꺼번에 여는 메모 전체 목록(`GET /notes`)은 판정기에서 거부합니다. 공지 수정은 계약에 역할 정보가 없어 `deny`(`instructor_required`), 그 밖의 경로·`:id` 깊이의 기능 경로·경로 불일치·쿼리 있는 요청은 `deny`(`route_not_allowed`)입니다. 기기 → 구역 → 복합 이상 순서로 판정합니다. 두 이유 코드는 안내에 목록이 없어 직접 정했습니다.
 
 ### 확인 순서
 

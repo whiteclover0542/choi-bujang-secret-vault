@@ -7,8 +7,8 @@ export const RULE_IDS = Object.freeze(['device_registered', 'resource_zone', 'st
 // 메모의 소유자 대조는 자료 API가 합니다(subjectId는 가명이라 판정기에서 소유자와 비교할 수 없음).
 // 공지 수정은 계약에 역할 정보가 없어 판정기에서 강사를 확인할 수 없으므로 거부합니다.
 // 기능은 쿼리로 고르지 않고, :id와 같은 깊이에 export 같은 기능 경로를 두지 않습니다.
+// 메모 전체 목록(GET /notes)은 여러 사람의 자료를 한꺼번에 여는 경로라 판정기 구역에 두지 않습니다.
 const ZONES = Object.freeze({
-  'GET /notes': 'own_notes',
   'POST /notes': 'own_notes',
   'GET /notes/:id': 'own_notes',
   'PUT /notes/:id': 'own_notes',
