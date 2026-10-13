@@ -104,8 +104,10 @@ export async function runAttackChecks(config) {
       // 12단계: 심판 실행기가 요청을 점검과 맞춰 볼 수 있게 attackId를 헤더에 표시합니다(서버는 이 값을 읽지 않음).
       const headers = { 'Content-Type': 'application/json', 'X-Aleph-Attack-Id': attackId };
       if (attackId === 'forged_user_header') Object.assign(headers, { 'X-User-Id': '00000000-0000-4000-8000-000000000000', 'X-Role': 'admin' });
-      // 심판 실행기의 URL에는 searchParams가 없어 주소에 표시를 붙이지 않습니다(헤더 표시만).
-      const res = await fetch(new URL(path, app), { method, headers, redirect: 'error', signal: AbortSignal.timeout(10000) });
+      // 심판 실행기는 fetch 옵션의 alephEvidence(caseId = attackId, 요청마다 새 requestKey)로 요청과 점검을 맞춰 봅니다.
+      // 일반 Node fetch는 이 옵션을 무시하므로 실제 요청은 같습니다.
+      const res = await fetch(new URL(path, app), { method, headers, redirect: 'error', signal: AbortSignal.timeout(10000),
+        alephEvidence: { caseId: attackId, requestKey: randomUUID() } });
       // observed에는 실행기가 기록한 응답과 대조할 수 있도록 사실값(HTTP 상태)만 적고, 설명은 expected에 둡니다.
       results.push({ attackId, expected: `로그인 없는 ${method} ${path.replace(/[0-9a-f-]{36}$/u, ':id')}는 401·403 JSON으로 거부(메모 없음)`,
         observed: `HTTP ${res.status}` });
