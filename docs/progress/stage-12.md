@@ -19,7 +19,9 @@
 | ✅ | 수정 · `node:util`·`node:fs/promises` 제거, 쓰기 요청 점검 not_run |
 | ✅ | 2차 제출 (`33a8506`) — 45/100, 조건 4개 중 「제출 묶음 점검 기록」 실패: `runner_import_failed` (`S12_SCREEN_MISMATCH`) |
 | ✅ | 수정 · 자기 점검이 `scripts/`를 불러오지 않고 혼자 실행 |
-| ⬜ | 다시 제출, 결과 확인 |
+| ✅ | 3차 제출 (`4d49e74`) — 38점(최고 45점 유지), 조건 8개 중 「실행 기록 대조」·「기록과 화면 수치」 실패 |
+| ✅ | 수정 · 로컬 전용 점검 `not_run`, 보낸 GET 요청에 attackId 표시 |
+| ⬜ | 다시 제출, 결과 확인 (「기록과 화면 수치」는 이번 결과를 보고 다음에 수정) |
 
 ## 완료한 일
 
@@ -38,3 +40,5 @@
 - 수정: `detect-test.mjs`는 평평한 결과 객체를 직접 비교(동작 같음, `detect:test` 6항목 통과), `policy-restore.mjs`는 `node:fs`의 promises 사용, 자기 점검의 쓰기 요청 3건(메모 추가·공지 수정·복원)은 보내지 않고 `not_run`. 허용 목록 밖 모듈을 막는 로더로 자기 점검 19개를 끝까지 실행해 확인.
 - 2차 심판(커밋 `33a8506`): 45/100, 「제출 묶음 점검 기록」 실패 — `npm run bundle` 마지막 출력 `runner_import_failed`. 심판 격리 실행기가 자기 점검의 불러오기 경로에서 실패한 것으로 판단(`scripts/policy-restore.mjs`의 꼬리값 붙은 동적 import·`node:fs` promises, 그 밖의 `scripts/` 파일 의존).
 - 수정: `src/attack-check.mjs`가 `scripts/`를 불러오지 않도록 판정기 가상 요청(계약 모양)·탐지 사건·정책 사본 해시 확인을 파일 안에서 직접 만듦. 불러오는 것은 `./decider.mjs`·`./detect.mjs`·`node:fs`(readFileSync)·`node:crypto`(randomUUID·createHash sha256)뿐. 점검 ID·개수(19) 그대로. 허용 밖 모듈·src→scripts 불러오기·꼬리값 import를 막는 로더로 끝까지 실행 확인.
+- 3차 심판(커밋 `4d49e74`): 제출 묶음은 끝까지 실행됨. 「실행 기록 대조」: 14건 "그 attackId로 보낸 요청 기록 없음"(로컬 전용 점검 8건 + 실제 GET 6건), 「기록과 화면 수치」 불일치(`S12_SCREEN_MISMATCH`).
+- 수정(「실행 기록 대조」만): 요청 없이 로컬에서 확인한 판정기 6·탐지 1·정책 사본 1과 미실행 2건의 observed를 `not_run: …`으로, 실제로 보내는 GET 6건에 `X-Aleph-Attack-Id` 헤더와 `?attackId=` 표시(서버는 읽지 않음). 요청을 가로채 기록하는 흉내로 19개 대조 모두 맞음(요청 6건 모두 GET).

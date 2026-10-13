@@ -101,9 +101,12 @@ export async function runAttackChecks(config) {
           observed: 'not_run: 쓰기 요청은 제출 묶음 점검에서 보내지 않음(운영 배포 실측은 docs/verification 실측표)' });
         continue;
       }
-      const headers = { 'Content-Type': 'application/json' };
+      // 12단계: 심판 실행기가 요청을 점검과 맞춰 볼 수 있게 attackId를 헤더와 주소에 표시합니다(서버는 이 값을 읽지 않음).
+      const headers = { 'Content-Type': 'application/json', 'X-Aleph-Attack-Id': attackId };
       if (attackId === 'forged_user_header') Object.assign(headers, { 'X-User-Id': '00000000-0000-4000-8000-000000000000', 'X-Role': 'admin' });
-      const res = await fetch(new URL(path, app), { method, headers, redirect: 'error', signal: AbortSignal.timeout(10000) });
+      const target = new URL(path, app);
+      target.searchParams.set('attackId', attackId);
+      const res = await fetch(target, { method, headers, redirect: 'error', signal: AbortSignal.timeout(10000) });
       const json = (res.headers.get('content-type') ?? '').includes('application/json');
       const notes = await noteCount(res);
       results.push({ attackId, expected: `로그인 없는 ${method} ${path.replace(/[0-9a-f-]{36}$/u, ':id')}는 401·403 JSON으로 거부`,
@@ -125,7 +128,7 @@ export async function runAttackChecks(config) {
         const out = await decide(request);
         const ok = validDecision(request, out) && out.decision === decision && (!reasonCode || out.reasonCode === reasonCode);
         results.push({ attackId, expected,
-          observed: `로컬 판정기 가상 요청 ${out?.decision}·${out?.reasonCode} (${ok ? '기대와 같음' : '기대와 다름'}, 심판 판정 아님)` });
+          observed: `not_run: 네트워크 요청 없음. 로컬 판정기 가상 요청 ${out?.decision}·${out?.reasonCode} (${ok ? '기대와 같음' : '기대와 다름'}, 심판 판정 아님)` });
       }
     }
     if (config.step >= 9) {
@@ -134,7 +137,7 @@ export async function runAttackChecks(config) {
       const failed = [];
       for (const [name, events, want] of DETECT_CASES) if (!sameFlat(await detect(events), want)) failed.push(name);
       results.push({ attackId: 'detect_practice_cases', expected: '로컬 탐지: 같은 사용자 GET 10분 120건 초과만 propose_revocation·burst_read, 나머지 observe',
-        observed: `로컬 탐지 가상 사건 ${DETECT_CASES.length}건 중 ${DETECT_CASES.length - failed.length}건 기대와 같음${failed.length ? ` (다름: ${failed.join(', ')})` : ''} (실제 회수·심판 판정 아님)` });
+        observed: `not_run: 네트워크 요청 없음. 로컬 탐지 가상 사건 ${DETECT_CASES.length}건 중 ${DETECT_CASES.length - failed.length}건 기대와 같음${failed.length ? ` (다름: ${failed.join(', ')})` : ''} (실제 회수·심판 판정 아님)` });
     }
     if (config.step >= 10) {
       // 10단계: 검증한 정책 사본을 다시 읽어 해시를 확인하고, 현재 시험 정책과 같은지 봅니다(파일은 바꾸지 않음).
@@ -143,20 +146,20 @@ export async function runAttackChecks(config) {
         const manifest = JSON.parse(readFileSync(new URL('../backup/policy/manifest.json', import.meta.url), 'utf8'));
         const backupOk = sha256(readFileSync(new URL('../backup/policy/decider.mjs', import.meta.url), 'utf8')) === manifest.sha256;
         const same = sha256(readFileSync(new URL('./decider.mjs', import.meta.url), 'utf8')) === manifest.sha256;
-        observed = backupOk ? `정책 사본 ${manifest.version} 해시 확인, 현재 시험 정책과 ${same ? '같음' : '다름'}` : `중단: 정책 사본 ${manifest.version} 해시 불일치`;
-      } catch { observed = '중단: 검증한 정책 사본을 읽을 수 없음'; }
+        observed = `not_run: 네트워크 요청 없음. ${backupOk ? `정책 사본 ${manifest.version} 해시 확인, 현재 시험 정책과 ${same ? '같음' : '다름'}` : `정책 사본 ${manifest.version} 해시 불일치`}`;
+      } catch { observed = 'not_run: 네트워크 요청 없음. 검증한 정책 사본을 읽을 수 없음'; }
       results.push({ attackId: 'policy_backup_verify', expected: '검증한 정책 사본의 해시가 맞고 현재 시험 정책과 같아야 함', observed });
     }
     if (config.step >= 7) {
       results.push({ attackId: 'relogin_live_block', expected: '재로그인 전 실제 자료 차단, 새 로그인 뒤 요청 허용',
-        observed: '미실행: 새 로그인 시각을 검증하는 제공 엔진이 이 환경에 없어 실제 요청을 보내지 않음' });
+        observed: 'not_run: 새 로그인 시각을 검증하는 제공 엔진이 이 환경에 없어 실제 요청을 보내지 않음' });
     }
     if (config.step >= 4) {
       // 공개 키(anon)로 원본 자료 주소를 직접 읽어 봅니다. 5단계부터 화면 코드에는 키가 없어 환경변수로 받습니다.
       const key = process.env.SUPABASE_PUBLISHABLE_KEY;
       if (!key) {
         results.push({ attackId: 'anon_data_api_read', expected: 'anon 키로 원본 자료 직접 조회는 권한 없음으로 거부',
-          observed: '미실행: SUPABASE_PUBLISHABLE_KEY 환경변수가 없어 요청을 보내지 않음' });
+          observed: 'not_run: SUPABASE_PUBLISHABLE_KEY 환경변수가 없어 요청을 보내지 않음' });
         return results;
       }
       const restUrl = new URL('?select=id&limit=1', config.originalApiUrl ?? new URL('/rest/v1/notes', config.identityProvider.issuer));
