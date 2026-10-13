@@ -176,6 +176,30 @@
 4. 같은 env 파일로 `scripts/stage8-live-check.mjs`, `scripts/stage10-live-check.mjs` → 소유자·강사·복원 결과 유지.
 5. 화면: 새 기기에서 로그인 → "이 기기 승인 요청" → 기기 번호 확인 → SQL 승인 → "승인 결과 확인" → 기존 자료실.
 
+## 12단계: 탈환 작전실
+
+- 작전실 화면 `/ops.html`(자료실 화면의 "탈환 작전실" 링크)과 요약 API `GET /api/ops/summary`. 로그인·승인된 기기에서만 열리고 본인 범위의 건수·상태만 보여 줍니다(메모 본문 없음).
+  - 실측 · 배포 파일: 판정기 규칙·허용 경로·구역(`src/decider.mjs`), 정책 사본 버전과 해시 재확인·현재 판정기 일치(`backup/policy`).
+  - 실측 · 서버 DB: 내 메모·공지 건수, 이 기기 승인 상태·내 기기 기록, 내 복원 기록 건수·최근 결과(`restore_audit`).
+  - 미실행: 탐지 사건·회수 상태. 사건 전달과 회수 집행은 ALEPH SDP 엔진·심판이 하며 이 앱에는 그 기록이 없습니다(9단계 탐지 함수는 제안만).
+  - 화면 문구는 통과 근거가 아니며, 응답의 확인 시각·요청 ID(`x-vercel-id`)를 함께 보여 줍니다.
+- 실측표: `node --env-file=.env.local --env-file=.env.devices.local scripts/stage12-matrix.mjs` → 1~12단계 정상·금지 요청을 운영 배포에 실제로 보내 단계·구분·기대·실제·요청 ID·확인 시각·결과를 `docs/verification/matrix-<배포 커밋>.md`로 남깁니다. 작전실 수치는 별도 API 응답(메모·공지 목록)과 대조합니다. 로컬 판정기·탐지 연습은 "통과(로컬)", 보내지 않은 시험은 "미실행"으로 적고, 심판 총공세 41종은 실행·통과 처리하지 않습니다.
+
+### 출처: 제공 엔진과 학생 작업
+
+- 제공(ALEPH SDP 엔진·운영 측): 반 엔진의 신원·기기·경로 확인과 판정 요청 전달(`docs/DECIDER_REQUEST.md` 계약 `aleph.decision.v1`), 탐지 사건 전달·회수 집행(`docs/DETECT_EVENTS.md`), 심판 토큰 발급자(`aleph.config.json`의 `judgeIssuer`), 시작 틀의 로그인 검사 `src/verify-login.mjs`, 실행기·점검 도구(`scripts/bundle.mjs`, `decider-test.mjs`, `detect-test.mjs`, `fixture-7.mjs`, `xdr-run.mjs`).
+- 학생 작업(이 저장소): 판정기 규칙 `src/decider.mjs`, 탐지 규칙 `src/detect.mjs`, 자료실 API `api/`(메모·공지·복원·기기·작전실·로그인 쿠키), 접속 앱 화면 `public/`(manifest·서비스 워커·작전실), DB SQL `supabase/`, 정책 사본·복원 도구 `backup/policy`·`scripts/policy-restore.mjs`, 점검 스크립트 `scripts/*-live-check.mjs`·`stage12-matrix.mjs`·`device-enroll.mjs`, 자기 점검 `src/attack-check.mjs`, 보너스 `xdr/`.
+
+### 설치·실행·중지·복구 (검사 커밋 기준)
+
+검사 기준은 제출 묶음의 `commit`과 운영 `/aleph.json`의 `commit`이 같은 커밋입니다. 비밀값은 저장소·안내·제출 묶음에 넣지 않습니다.
+
+1. 설치: Node.js 22 이상, `npm ci`. Supabase 프로젝트에서 SQL Editor로 `supabase/stage3-notes.sql`부터 `stage4-*`, `stage5-revoke.sql`, `stage8-notices.sql`, `stage10-backup.sql`, `stage11-devices.sql`을 차례로 실행합니다(2단계 `*.local.sql`은 가상 메모 문장을 담아 Git 밖에 보관). Vercel 프로젝트 설정의 비밀 입력란에 `SUPABASE_URL`, `SUPABASE_SECRET_KEY`를 직접 넣습니다.
+2. 실행: `main`에 push하면 Vercel이 `npm run build`로 배포합니다. 로컬 확인은 `npm run decider:test`, `npm run fixture:7`, `npm run detect:test`, `npm run policy:diff`, `node --test test/decider.test.mjs test/detect.test.mjs test/policy-restore.test.mjs`.
+3. 접속 앱: 배포 주소에서 로그인 → "이 기기 승인 요청" → SQL Editor에서 `stage11-devices.sql` ③으로 승인 → "승인 결과 확인" → 자료실·작전실.
+4. 중지: 의심 기기는 `stage11-devices.sql` ④로 `revoked`(즉시 자료 403), 의심 계정은 Supabase Authentication에서 세션 폐기·사용자 차단, 서비스 전체는 Vercel 프로젝트에서 이전 정상 배포로 되돌리거나 배포를 멈춥니다. 학습 DB 자료는 지우지 않습니다.
+5. 복구: 정책은 `npm run policy:diff` → `npm run policy:restore`, 메모 한 건은 `POST /api/notes/:id/restore`(소유자 본인), 코드는 정상이던 커밋으로 되돌리는 새 커밋을 push(`git reset --hard` 대신 `git revert`). 복구 뒤 `scripts/stage12-matrix.mjs`로 재시험합니다.
+
 ## 보너스 xdr-01: 무차별 로그인 공격 탐지
 
 - `xdr/brute-force/read-alerts.mjs`: 경보에서 시각·주소·계정·규칙 수준·설명만 뽑습니다(비밀값 모양은 가림).

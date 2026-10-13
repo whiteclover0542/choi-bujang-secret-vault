@@ -18,6 +18,8 @@ export const ZONES = Object.freeze({
   // 11단계: 자기 기기 승인 요청·상태 확인(승인 자체는 서버 DB에서만). 승인 요청만으로 권한이 생기지 않습니다.
   'POST /devices/request': 'own_device',
   'GET /devices/me': 'own_device',
+  // 12단계: 본인 범위의 작전실 요약(건수·상태만, 본문 없음).
+  'GET /ops/summary': 'own_summary',
   'GET /notices': 'class_notices',
   'GET /notices/:id': 'class_notices',
   'PUT /notices/:id': 'instructor_only',

@@ -1,9 +1,9 @@
 {
   "schema": "aleph.policy.backup.v1",
-  "version": "stage11-verified-2026-10-13",
-  "verifiedBy": "판정기 시험(기기·복합 이상·구역·복원·기기 승인 경로) 통과 뒤 사본 갱신",
+  "version": "stage12-verified-2026-10-13",
+  "verifiedBy": "판정기 시험(기기·복합 이상·구역·복원·기기 승인·작전실 경로) 통과 뒤 사본 갱신",
   "file": "decider.mjs",
-  "sha256": "a3931d9338fe312f2742af4c94361b3fcd23a0f90c17b336bf4bfb7dad14f490",
+  "sha256": "fe99b76f242459f0402639374c6281a619f19beab7eb96298874a5783db14b4d",
   "ruleIds": [
     "device_registered",
     "resource_zone",

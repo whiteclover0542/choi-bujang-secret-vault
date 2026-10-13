@@ -85,3 +85,9 @@ test('11단계: 자기 기기 승인 요청·상태 경로만 허용합니다', 
   assert.equal(await run(at('GET', '/devices', '/devices')), 'deny/route_not_allowed');
   assert.equal(await run(at('GET', '/devices/me', '/devices/me', { deviceRegistered: false })), 'deny/device_not_registered');
 });
+
+test('12단계: 본인 작전실 요약 경로만 허용합니다', async () => {
+  assert.equal(await run(at('GET', '/ops/summary', '/ops/summary')), 'allow/approved');
+  assert.equal(await run(at('GET', '/ops', '/ops')), 'deny/route_not_allowed');
+  assert.equal(await run(at('POST', '/ops/summary', '/ops/summary')), 'deny/route_not_allowed');
+});
