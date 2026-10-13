@@ -2,8 +2,6 @@
 
 ## 해야 할 일
 
-- push·배포 확인 뒤 `npm run bundle`
-- 학생이 직접: A 로그인 화면 정상, A·B 토큰 공지 PUT 403, B 토큰 A 메모 403, 강사 토큰 공지 PUT 200 확인
 - 8단계 카드 제출
 
 ## 작업 순서
@@ -17,7 +15,8 @@
 | ✅ | 만들기 3 · 자료 API 소유자·강사 권한 재확인 |
 | ✅ | DB 준비 · `stage8-notices.sql` 실행(공지 1건), 강사 시험 계정 생성·지정(`instructors` 1) — Supabase 일시 정지 재개 포함 |
 | ✅ | 저장점 준비 · `allowedRoutes` 공지 경로 3개, README 8단계 절, `step` 8, 자기 점검 8단계 확장 |
-| 🔄 | 제출 전 확인 · 8단계 저장점 커밋, push, `npm run bundle` |
+| ✅ | 제출 전 확인 · 8단계 저장점 커밋(`547f1c8`), push·배포 확인, `npm run bundle` |
+| ✅ | 로그인 교차 점검 (운영 배포, `scripts/stage8-live-check.mjs`) 8항목 통과 |
 | ⬜ | 8단계 제출 |
 
 ## 완료한 일
@@ -32,3 +31,6 @@
 - 시험(로컬, 심판 판정 아님): `node --test test/decider.test.mjs` 4개 통과(8단계 13개 확인 포함), `npm run decider:test` 4항목 통과, `npm run fixture:7` 정상 allow·복합 이상 step_up, 공지 API 문법·불러오기 확인. 공지 API의 실제 DB 동작은 SQL 적용·배포 전이라 미실행.
 - DB: Supabase 프로젝트가 무료 요금제 비활성으로 일시 정지돼 있어 재개함(지역은 도쿄 유지). `notices` 1건, 강사 시험 계정을 새로 만들어 `instructors` 1건 지정(이메일은 Git에 넣지 않음).
 - 저장점 준비: 자기 점검에 비로그인 공지 읽기·수정(본문에 `role: instructor`를 넣어도 거부되는지)과 로컬 판정기 구역 가상 요청 2건(공지 수정·알 수 없는 경로) 추가.
+- 저장점 `547f1c8` push, 운영 `/aleph.json` 커밋 `547f1c8`·step 8·공지 경로 확인. 비로그인 `GET /api/notices`·`PUT /api/notices/:id`(본문 role 포함) 모두 401.
+- `npm run bundle`: 단계 8 · 바뀐 파일 14개 · 규칙 3개(`device_registered`, `resource_zone`, `step_up_required`) · 직접 점검 14개(비로그인 401 ×6, 로컬 판정기 가상 요청 6건 기대와 같음, 실제 재로그인 차단·anon 직접 조회 미실행).
+- 로그인 교차 점검(운영 배포, 실제 요청): A·B 비밀번호를 SQL Editor에서 재설정, 학생이 `.env.local`(Git 제외)에 직접 입력. `node --env-file=.env.local scripts/stage8-live-check.mjs` 8항목 통과 — A 자기 메모 200, B의 A 메모 읽기·수정 403 `NOT_NOTE_OWNER`, A 공지 읽기 200, A·B 공지 수정(본문 role 위조) 403 `NOT_INSTRUCTOR`, 강사 공지 수정(내용 그대로) 200, 공지 경로로 메모 id 404. 토큰·비밀번호·본문 미출력, 세션 로그아웃.
