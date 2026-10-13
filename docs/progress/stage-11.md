@@ -2,8 +2,7 @@
 
 ## 해야 할 일
 
-- 학생이 직접: SQL Editor에서 `supabase/stage11-devices.sql` ⑥(auth.users 참조 제거) 실행
-- 커밋·push·배포 확인 → 실측(심판 토큰 경로는 학생이 재현할 수 없어 학생 계정으로 같은 확인) → `npm run bundle` → 11단계 다시 제출
+- 11단계 다시 제출, 결과 확인
 
 ## 작업 순서
 
@@ -17,7 +16,7 @@
 | ✅ | `devices` SQL 실행(권한 0행) |
 | ✅ | 제출 전 확인 · 11단계 저장점 커밋(`2987c1f`), push·배포 확인, 시험 기기 3개 승인, 실측, `npm run bundle` |
 | ✅ | 1차 제출 (`2987c1f`) — 50/100, 조건 6개 중 「승인 전 자료 없음」 실패 `S11_DATA_BEFORE_APPROVAL` |
-| 🔄 | 수정 · 심판 토큰도 기기 승인 확인(제외 규칙 삭제), 심판 토큰 승인 요청 허용, `engine_checked` 상태 삭제 |
+| ✅ | 수정 · 심판 토큰도 기기 승인 확인(제외 규칙 삭제), 심판 토큰 승인 요청 허용, `engine_checked` 상태 삭제 — 커밋 `5e9b39c`, SQL ⑥ 실행 |
 | ⬜ | 다시 제출, 결과 확인 |
 
 ## 완료한 일
@@ -40,3 +39,4 @@
 - 1차 심판(커밋 `2987c1f`): 50/100, `S11_DATA_BEFORE_APPROVAL` — 승인 전 화면에 보호 자료가 보임. 원인(추정): 정할 것 ④에서 심판 토큰을 기기 확인에서 제외해, 심판 토큰은 기기 쿠키 없이 메모·공지를 받았고 `GET /api/devices/me`가 `engine_checked`를 돌려 화면이 자료실을 엶. 학생 계정 실측은 모두 통과했던 것과 들어맞음.
 - 수정: `requireUser`가 학생·심판 토큰 모두 승인 기기를 확인(미승인 403), `api/devices/request.js`의 심판 토큰 403 제거(심판도 pending 요청 가능, 승인은 DB에서만), `api/devices/me.js`·`api/ops/summary.js`의 `engine_checked` 제거, 화면은 `approved`일 때만 자료실. `devices.user_id`의 auth.users 참조 제거 SQL(⑥, 심판 사용자 ID는 auth.users에 없음), 승인 목록은 left join. 시험 21개 통과.
 - 위험: 심판이 자기 기기를 승인할 방법이 없으면 "승인 뒤 기존 화면" 조건이 새로 실패할 수 있음(학생 결정으로 진행).
+- 수정 배포 `5e9b39c` 확인 뒤 재실측: 11단계 14항목·8단계 8항목·10단계 7항목 통과, 12단계 실측표 `docs/verification/matrix-5e9b39c.md`(운영 21 통과·로컬 14·미실행 4). 심판 토큰 경로는 학생이 재현할 수 없어 학생 계정으로 같은 확인.
