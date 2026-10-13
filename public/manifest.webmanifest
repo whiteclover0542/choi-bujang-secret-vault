@@ -1,0 +1,14 @@
+{
+  "name": "최 부장 비밀 자료실",
+  "short_name": "비밀 자료실",
+  "description": "승인된 기기에서만 열리는 가상 자료실입니다. 앱 설치는 기기 승인이 아닙니다.",
+  "start_url": "/",
+  "scope": "/",
+  "display": "standalone",
+  "background_color": "#101a28",
+  "theme_color": "#101a28",
+  "lang": "ko",
+  "icons": [
+    { "src": "/icon.svg", "sizes": "any", "type": "image/svg+xml", "purpose": "any" }
+  ]
+}

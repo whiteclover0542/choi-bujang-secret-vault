@@ -44,7 +44,7 @@ export async function runAttackChecks(config) {
     return [{ attackId: 'anonymous_note_read', expected: '비로그인 화면에서 가상 메모를 확인',
       observed: visible ? '비로그인 요청에서 공개 가상 메모 확인 표시가 보임' : `비로그인 요청에서 확인 표시가 보이지 않음 (HTTP ${response.status})` }];
   }
-  if (config.step >= 3 && config.step <= 10) {
+  if (config.step >= 3 && config.step <= 11) {
     // 로그인 없이 보낸 요청만 직접 점검합니다. A·B 로그인 점검은 비밀번호가 필요해 여기서 실행하지 않습니다.
     const tries = [
       ['anonymous_list_read', 'GET', '/api/notes'],
@@ -58,6 +58,8 @@ export async function runAttackChecks(config) {
       ] : []),
       // 10단계: 메모 복원 경로도 로그인 없이는 거부되어야 합니다.
       ...(config.step >= 10 ? [['anonymous_note_restore', 'POST', '/api/notes/00000000-0000-4000-8000-000000000000/restore']] : []),
+      // 11단계: 기기 승인 상태도 로그인 없이는 알려 주지 않아야 합니다.
+      ...(config.step >= 11 ? [['anonymous_device_status', 'GET', '/api/devices/me']] : []),
     ];
     const results = [];
     for (const [attackId, method, path] of tries) {

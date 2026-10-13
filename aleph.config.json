@@ -1,5 +1,5 @@
 {
-  "step": 10,
+  "step": 11,
   "repoUrl": "https://github.com/whiteclover0542/choi-bujang-secret-vault",
   "publicAppUrl": "https://choi-bujang-secret-vault-chi.vercel.app",
   "sampleMarker": "SAMPLE_NOTE_1",
@@ -18,7 +18,9 @@
     "GET /api/notices",
     "GET /api/notices/:id",
     "PUT /api/notices/:id",
-    "POST /api/notes/:id/restore"
+    "POST /api/notes/:id/restore",
+    "POST /api/devices/request",
+    "GET /api/devices/me"
   ],
   "originalApiUrl": "https://pdexkcgclglxyiqybjrl.supabase.co/rest/v1/notes",
   "restoreRoute": "POST /api/notes/:id/restore"

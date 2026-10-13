@@ -76,3 +76,12 @@ test('10단계: 자기 메모 한 건 복원 경로만 허용합니다', async (
   assert.equal(await run(at('GET', '/notes/:id/restore', `/notes/${ID}/restore`)), 'deny/route_not_allowed');
   assert.equal(await run(at('POST', '/notes/restore', '/notes/restore')), 'deny/route_not_allowed');
 });
+
+test('11단계: 자기 기기 승인 요청·상태 경로만 허용합니다', async () => {
+  assert.equal(await run(at('POST', '/devices/request', '/devices/request')), 'allow/approved');
+  assert.equal(await run(at('GET', '/devices/me', '/devices/me')), 'allow/approved');
+  // 승인 자체·다른 기기 목록 같은 경로는 판정기에 없습니다.
+  assert.equal(await run(at('POST', '/devices/approve', '/devices/approve')), 'deny/route_not_allowed');
+  assert.equal(await run(at('GET', '/devices', '/devices')), 'deny/route_not_allowed');
+  assert.equal(await run(at('GET', '/devices/me', '/devices/me', { deviceRegistered: false })), 'deny/device_not_registered');
+});

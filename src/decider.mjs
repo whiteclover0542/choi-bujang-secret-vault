@@ -15,6 +15,9 @@ export const ZONES = Object.freeze({
   'DELETE /notes/:id': 'own_notes',
   // 10단계: 자기 메모 한 건 복원(소유자·해시 대조는 자료 API가 함). :id보다 한 단계 깊은 경로입니다.
   'POST /notes/:id/restore': 'own_notes',
+  // 11단계: 자기 기기 승인 요청·상태 확인(승인 자체는 서버 DB에서만). 승인 요청만으로 권한이 생기지 않습니다.
+  'POST /devices/request': 'own_device',
+  'GET /devices/me': 'own_device',
   'GET /notices': 'class_notices',
   'GET /notices/:id': 'class_notices',
   'PUT /notices/:id': 'instructor_only',

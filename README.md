@@ -157,6 +157,25 @@
 7. 9단계 탐지: `npm run detect:test`.
 8. anon 키로 원본 자료 직접 조회(4·5단계)와 실제 재로그인 전 차단(7단계)은 키·엔진이 없어 미실행.
 
+## 11단계: 나만의 접속 앱
+
+- 설치형 웹앱: `public/manifest.webmanifest`(앱 이름 "최 부장 비밀 자료실", 아이콘 `icon.svg`, `display: standalone`), 오프라인 안내 `public/offline.html`, 서비스 워커 `public/sw.js`(오프라인 안내 화면 하나만 저장, `/api/…`와 자료실 화면은 저장하지 않음). 설치형 앱으로 열려도 "기기 승인은 서버가 따로 확인"이라고만 표시하고, 설치를 기기 확인으로 취급하지 않습니다. 따로 설치할 접속 프로그램은 없습니다.
+- 토큰 보관: 로그인 API가 access token을 응답 본문에 넣지 않고 서버가 HttpOnly·Secure·SameSite=Strict 쿠키(`__Host-vault-sid`)로만 둡니다. 화면은 더 이상 `sessionStorage`를 쓰지 않습니다. 심판·점검 스크립트용 `Authorization: Bearer`도 그대로 받습니다.
+- 기기 승인: 서버가 만든 무작위 기기 ID를 HttpOnly 쿠키(`__Host-vault-did`)로 발급하고 DB `devices`에는 해시만 둡니다(`supabase/stage11-devices.sql`). 기기 ID는 기기 개인키가 아닙니다.
+  - `POST /api/devices/request` → 이 기기를 `pending`으로 요청(버튼만으로 승인되지 않음)
+  - `GET /api/devices/me` → `none`·`pending`·`approved`·`revoked`와 기기 번호(해시 앞 12자리)
+  - 승인은 학생이 Supabase SQL Editor에서 `stage11-devices.sql` ③으로만 합니다.
+- 승인 전 자료 없음: 메모·공지·복원 API가 학생 로그인 요청에 대해 승인된 기기 쿠키를 서버에서 확인하고, 아니면 `403 DEVICE_NOT_APPROVED`로 자료 없이 거부합니다. 화면도 `approved`일 때만 기존 자료실을 엽니다. 심판 토큰은 반 엔진이 기기를 먼저 확인하므로 이 확인에서 제외했습니다.
+- 판정기 구역에 `POST /devices/request`·`GET /devices/me`를 추가하고, 10단계 정책 사본을 11단계 검증 버전으로 갱신했습니다(`backup/policy/audit.log`에 기록).
+
+### 확인 순서
+
+1. `node --env-file=.env.local scripts/device-enroll.mjs` → A·B·강사 시험 기기 pending 요청(기기 ID는 Git 제외 `.env.devices.local`에만 저장, 화면에는 기기 번호만).
+2. SQL Editor에서 `stage11-devices.sql` ②로 목록을 보고 ③으로 세 기기 승인.
+3. `node --env-file=.env.local --env-file=.env.devices.local scripts/stage11-live-check.mjs` → 정적 파일 200, 비로그인 401, 로그인 본문에 토큰 없음, 기기 없이·승인 대기 기기로 메모 403, 승인 기기로 메모·공지 200.
+4. 같은 env 파일로 `scripts/stage8-live-check.mjs`, `scripts/stage10-live-check.mjs` → 소유자·강사·복원 결과 유지.
+5. 화면: 새 기기에서 로그인 → "이 기기 승인 요청" → 기기 번호 확인 → SQL 승인 → "승인 결과 확인" → 기존 자료실.
+
 ## 보너스 xdr-01: 무차별 로그인 공격 탐지
 
 - `xdr/brute-force/read-alerts.mjs`: 경보에서 시각·주소·계정·규칙 수준·설명만 뽑습니다(비밀값 모양은 가림).

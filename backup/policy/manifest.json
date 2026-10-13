@@ -1,9 +1,9 @@
 {
   "schema": "aleph.policy.backup.v1",
-  "version": "stage10-verified-2026-10-13",
-  "verifiedBy": "운영 배포 로그인 교차 점검 8항목 통과, 판정기 시험 통과",
+  "version": "stage11-verified-2026-10-13",
+  "verifiedBy": "판정기 시험(기기·복합 이상·구역·복원·기기 승인 경로) 통과 뒤 사본 갱신",
   "file": "decider.mjs",
-  "sha256": "6e1f77e647d6aeaab7985cdbeaacdce13511428644338f590a0b4d2efbe2f1e2",
+  "sha256": "a3931d9338fe312f2742af4c94361b3fcd23a0f90c17b336bf4bfb7dad14f490",
   "ruleIds": [
     "device_registered",
     "resource_zone",

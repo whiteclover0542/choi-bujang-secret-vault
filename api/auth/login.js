@@ -1,7 +1,9 @@
 import { createClient } from '@supabase/supabase-js';
+import { SESSION_COOKIE, setCookie } from '../../src/notes-api.mjs';
 
 // 5단계: 로그인도 서버 함수가 대신 Supabase Auth를 부릅니다. 브라우저에는 Supabase 주소·키가 없습니다.
-// POST {email, password} → 200 {access_token, expires_at, email}. 비밀번호와 refresh token은 돌려주지도 기록하지도 않습니다.
+// POST {email, password} → 200 {expires_at, email}. 비밀번호와 refresh token은 돌려주지도 기록하지도 않습니다.
+// 11단계: access token은 응답 본문에 넣지 않고 HttpOnly 세션 쿠키로만 둡니다(브라우저 저장소에 토큰 없음).
 export default async function handler(request, response) {
   response.setHeader('Cache-Control', 'no-store');
   if (request.method !== 'POST') return response.status(405).json({ error: 'METHOD_NOT_ALLOWED' });
@@ -20,8 +22,8 @@ export default async function handler(request, response) {
   if (error || !data.session) {
     return response.status(401).json({ error: 'LOGIN_FAILED', message: error?.message ?? '로그인하지 못했습니다.' });
   }
+  setCookie(response, SESSION_COOKIE, data.session.access_token, data.session.expires_at - Date.now() / 1000);
   return response.status(200).json({
-    access_token: data.session.access_token,
     expires_at: data.session.expires_at,
     email: data.user.email,
   });
