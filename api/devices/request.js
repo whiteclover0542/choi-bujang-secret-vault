@@ -1,7 +1,7 @@
 import { randomBytes } from 'node:crypto';
 import { DEVICE_COOKIE, DEVICE_ID, dbFailed, deviceHash, requireUser, setCookie } from '../../src/notes-api.mjs';
 
-// POST /api/devices/request : 이 기기의 승인을 요청합니다(학생 로그인 필요).
+// POST /api/devices/request : 이 기기의 승인을 요청합니다(학생·심판 로그인 모두 가능).
 // 기기 ID가 없으면 서버가 무작위 값을 만들어 HttpOnly 쿠키로 둡니다. DB에는 해시만 pending으로 기록합니다.
 // 이 요청만으로는 승인되지 않습니다. 승인은 관리자가 서버(DB)에서 따로 합니다.
 export default async function handler(request, response) {
@@ -12,7 +12,6 @@ export default async function handler(request, response) {
   const auth = await requireUser(request, response, { device: false });
   if (!auth) return;
   const { user, db, cookies } = auth;
-  if (user.kind !== 'student') return response.status(403).json({ error: 'STUDENT_DEVICE_ONLY' });
 
   let id = cookies[DEVICE_COOKIE];
   if (!id || !DEVICE_ID.test(id)) {

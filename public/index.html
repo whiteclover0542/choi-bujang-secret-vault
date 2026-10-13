@@ -76,7 +76,7 @@
       pending: '승인 대기 중입니다. 관리자에게 아래 기기 번호를 알려 주세요. 승인 전에는 자료를 볼 수 없습니다.',
       revoked: '이 기기는 승인이 취소되었습니다. 자료를 볼 수 없습니다.',
     };
-    const BADGE = { approved: '기기: 승인됨', pending: '기기: 승인 대기', none: '기기: 미등록', revoked: '기기: 승인 취소', engine_checked: '기기: 엔진 확인' };
+    const BADGE = { approved: '기기: 승인됨', pending: '기기: 승인 대기', none: '기기: 미등록', revoked: '기기: 승인 취소' };
 
     // 화면 상태: login(로그인 전) · device(로그인했지만 승인 전, 자료 없음) · vault(승인된 기기, 기존 자료실)
     function show(state, info = {}) {
@@ -103,7 +103,7 @@
       if (response.status === 401) return show('login');
       const info = await response.json().catch(() => ({}));
       if (!response.ok) { $('authError').textContent = (info.message ?? '상태를 확인하지 못했습니다.') + ' (HTTP ' + response.status + ')'; return show('login'); }
-      show(info.status === 'approved' || info.status === 'engine_checked' ? 'vault' : 'device', info);
+      show(info.status === 'approved' ? 'vault' : 'device', info);
     }
 
     function showMessage(text) {

@@ -10,7 +10,6 @@ export default async function handler(request, response) {
   const auth = await requireUser(request, response, { device: false });
   if (!auth) return;
   const { user, db, cookies } = auth;
-  if (user.kind !== 'student') return response.status(200).json({ status: 'engine_checked' });
   const id = cookies[DEVICE_COOKIE];
   if (!id || !DEVICE_ID.test(id)) return response.status(200).json({ status: 'none' });
   const hash = deviceHash(id);

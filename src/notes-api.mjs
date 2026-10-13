@@ -34,7 +34,7 @@ export function setCookie(response, name, value, maxAgeSeconds) {
 
 // 로그인 사용자와 DB 클라이언트를 돌려줍니다. 실패하면 응답을 보내고 null을 돌려줍니다.
 // 토큰은 Authorization: Bearer(심판·점검 스크립트) 또는 서버가 둔 세션 쿠키(브라우저)에서 받습니다.
-// device가 true면 학생 로그인은 승인된 기기 쿠키가 있어야 합니다. 심판 토큰은 반 엔진이 기기를 먼저 확인하므로 제외합니다.
+// device가 true면 학생·심판 토큰 모두 승인된 기기 쿠키가 있어야 합니다(승인 전에는 자료 없음, S11_DATA_BEFORE_APPROVAL 수정).
 export async function requireUser(request, response, { device = true } = {}) {
   response.setHeader('Cache-Control', 'no-store');
   const { SUPABASE_URL, SUPABASE_SECRET_KEY } = process.env;
@@ -55,7 +55,7 @@ export async function requireUser(request, response, { device = true } = {}) {
   db ??= createClient(SUPABASE_URL, SUPABASE_SECRET_KEY, {
     auth: { persistSession: false, autoRefreshToken: false },
   });
-  if (device && user.kind === 'student') {
+  if (device) {
     const id = cookies[DEVICE_COOKIE];
     let approved = null;
     if (id && DEVICE_ID.test(id)) {

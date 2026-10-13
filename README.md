@@ -165,7 +165,7 @@
   - `POST /api/devices/request` → 이 기기를 `pending`으로 요청(버튼만으로 승인되지 않음)
   - `GET /api/devices/me` → `none`·`pending`·`approved`·`revoked`와 기기 번호(해시 앞 12자리)
   - 승인은 학생이 Supabase SQL Editor에서 `stage11-devices.sql` ③으로만 합니다.
-- 승인 전 자료 없음: 메모·공지·복원 API가 학생 로그인 요청에 대해 승인된 기기 쿠키를 서버에서 확인하고, 아니면 `403 DEVICE_NOT_APPROVED`로 자료 없이 거부합니다. 화면도 `approved`일 때만 기존 자료실을 엽니다. 심판 토큰은 반 엔진이 기기를 먼저 확인하므로 이 확인에서 제외했습니다.
+- 승인 전 자료 없음: 메모·공지·복원 API가 학생 로그인 요청에 대해 승인된 기기 쿠키를 서버에서 확인하고, 아니면 `403 DEVICE_NOT_APPROVED`로 자료 없이 거부합니다. 화면도 `approved`일 때만 기존 자료실을 엽니다. 심판 토큰도 같은 확인을 받습니다(처음에 심판 토큰을 제외했다가 `S11_DATA_BEFORE_APPROVAL`로 승인 전 자료가 보여 고침). 심판 토큰도 `POST /api/devices/request`로 pending을 만들 수 있고, 승인은 서버 DB에서만 합니다.
 - 판정기 구역에 `POST /devices/request`·`GET /devices/me`를 추가하고, 10단계 정책 사본을 11단계 검증 버전으로 갱신했습니다(`backup/policy/audit.log`에 기록).
 
 ### 확인 순서

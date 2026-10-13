@@ -49,8 +49,7 @@ export default async function handler(request, response) {
     const deviceCounts = {};
     for (const d of devices) deviceCounts[d.status] = (deviceCounts[d.status] ?? 0) + 1;
     const id = cookies[DEVICE_COOKIE];
-    const thisDevice = user.kind !== 'student' ? 'engine_checked'
-      : id && DEVICE_ID.test(id) ? (await db.from('devices').select('status').eq('user_id', user.userId).eq('device_hash', deviceHash(id)).maybeSingle()).data?.status ?? 'none' : 'none';
+    const thisDevice = id && DEVICE_ID.test(id) ? (await db.from('devices').select('status').eq('user_id', user.userId).eq('device_hash', deviceHash(id)).maybeSingle()).data?.status ?? 'none' : 'none';
 
     return response.status(200).json({
       schema: 'aleph.ops.summary.v1',
