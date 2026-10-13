@@ -21,7 +21,9 @@
 | ✅ | 수정 · 자기 점검이 `scripts/`를 불러오지 않고 혼자 실행 |
 | ✅ | 3차 제출 (`4d49e74`) — 38점(최고 45점 유지), 조건 8개 중 「실행 기록 대조」·「기록과 화면 수치」 실패 |
 | ✅ | 수정 · 로컬 전용 점검 `not_run`, 보낸 GET 요청에 attackId 표시 |
-| ⬜ | 다시 제출, 결과 확인 (「기록과 화면 수치」는 이번 결과를 보고 다음에 수정) |
+| ✅ | 4차 제출 (`9e1318b`) — 「제출 묶음 점검 기록」 실패: `Cannot read properties of undefined (reading 'set')` |
+| ✅ | 수정 · 주소의 `?attackId=` 표시 제거(실행기 URL에 searchParams 없음) |
+| ⬜ | 다시 제출, 결과 확인 |
 
 ## 완료한 일
 
@@ -42,3 +44,5 @@
 - 수정: `src/attack-check.mjs`가 `scripts/`를 불러오지 않도록 판정기 가상 요청(계약 모양)·탐지 사건·정책 사본 해시 확인을 파일 안에서 직접 만듦. 불러오는 것은 `./decider.mjs`·`./detect.mjs`·`node:fs`(readFileSync)·`node:crypto`(randomUUID·createHash sha256)뿐. 점검 ID·개수(19) 그대로. 허용 밖 모듈·src→scripts 불러오기·꼬리값 import를 막는 로더로 끝까지 실행 확인.
 - 3차 심판(커밋 `4d49e74`): 제출 묶음은 끝까지 실행됨. 「실행 기록 대조」: 14건 "그 attackId로 보낸 요청 기록 없음"(로컬 전용 점검 8건 + 실제 GET 6건), 「기록과 화면 수치」 불일치(`S12_SCREEN_MISMATCH`).
 - 수정(「실행 기록 대조」만): 요청 없이 로컬에서 확인한 판정기 6·탐지 1·정책 사본 1과 미실행 2건의 observed를 `not_run: …`으로, 실제로 보내는 GET 6건에 `X-Aleph-Attack-Id` 헤더와 `?attackId=` 표시(서버는 읽지 않음). 요청을 가로채 기록하는 흉내로 19개 대조 모두 맞음(요청 6건 모두 GET).
+- 4차 심판(커밋 `9e1318b`): `npm run bundle` 첫 오류 `Cannot read properties of undefined (reading 'set')` — 심판 실행기의 URL에 `searchParams`가 없음. 수정: `target.searchParams.set(...)` 제거, 헤더 `X-Aleph-Attack-Id`만 유지. searchParams 없는 흉내에서 19개 끝까지 실행, 요청 6건 GET, 대조 틀림 0.
+- 참고 자료: 학생이 공유한 통과 사례 `STAGE-12-PASS-GUIDE.md` — observed는 사실값만(`HTTP 401`), 점검당 요청 1건, 심판이 읽는 점검 결과 API(`/api/checks`: total·blocked·failed·notRun·attempts)를 제출 묶음과 같은 목록에서 계산. 다음 실패 조건이 「실행 기록 대조」·「기록과 화면 수치」이면 이 구조를 근거로 수정 예정.

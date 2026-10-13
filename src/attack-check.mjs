@@ -101,12 +101,11 @@ export async function runAttackChecks(config) {
           observed: 'not_run: 쓰기 요청은 제출 묶음 점검에서 보내지 않음(운영 배포 실측은 docs/verification 실측표)' });
         continue;
       }
-      // 12단계: 심판 실행기가 요청을 점검과 맞춰 볼 수 있게 attackId를 헤더와 주소에 표시합니다(서버는 이 값을 읽지 않음).
+      // 12단계: 심판 실행기가 요청을 점검과 맞춰 볼 수 있게 attackId를 헤더에 표시합니다(서버는 이 값을 읽지 않음).
       const headers = { 'Content-Type': 'application/json', 'X-Aleph-Attack-Id': attackId };
       if (attackId === 'forged_user_header') Object.assign(headers, { 'X-User-Id': '00000000-0000-4000-8000-000000000000', 'X-Role': 'admin' });
-      const target = new URL(path, app);
-      target.searchParams.set('attackId', attackId);
-      const res = await fetch(target, { method, headers, redirect: 'error', signal: AbortSignal.timeout(10000) });
+      // 심판 실행기의 URL에는 searchParams가 없어 주소에 표시를 붙이지 않습니다(헤더 표시만).
+      const res = await fetch(new URL(path, app), { method, headers, redirect: 'error', signal: AbortSignal.timeout(10000) });
       const json = (res.headers.get('content-type') ?? '').includes('application/json');
       const notes = await noteCount(res);
       results.push({ attackId, expected: `로그인 없는 ${method} ${path.replace(/[0-9a-f-]{36}$/u, ':id')}는 401·403 JSON으로 거부`,
