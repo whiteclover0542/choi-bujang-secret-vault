@@ -23,6 +23,8 @@
 | ✅ | 수정 · 로컬 전용 점검 `not_run`, 보낸 GET 요청에 attackId 표시 |
 | ✅ | 4차 제출 (`9e1318b`) — 「제출 묶음 점검 기록」 실패: `Cannot read properties of undefined (reading 'set')` |
 | ✅ | 수정 · 주소의 `?attackId=` 표시 제거(실행기 URL에 searchParams 없음) |
+| ✅ | 5차 제출 (`cdb916e`) — 53점, 조건 8개 중 「실행 기록 대조」만 실패(GET 6건 요청 기록 없음) |
+| ✅ | 수정 · 요청을 보낸 점검의 observed를 `HTTP <상태>` 사실값만 |
 | ⬜ | 다시 제출, 결과 확인 |
 
 ## 완료한 일
@@ -46,3 +48,4 @@
 - 수정(「실행 기록 대조」만): 요청 없이 로컬에서 확인한 판정기 6·탐지 1·정책 사본 1과 미실행 2건의 observed를 `not_run: …`으로, 실제로 보내는 GET 6건에 `X-Aleph-Attack-Id` 헤더와 `?attackId=` 표시(서버는 읽지 않음). 요청을 가로채 기록하는 흉내로 19개 대조 모두 맞음(요청 6건 모두 GET).
 - 4차 심판(커밋 `9e1318b`): `npm run bundle` 첫 오류 `Cannot read properties of undefined (reading 'set')` — 심판 실행기의 URL에 `searchParams`가 없음. 수정: `target.searchParams.set(...)` 제거, 헤더 `X-Aleph-Attack-Id`만 유지. searchParams 없는 흉내에서 19개 끝까지 실행, 요청 6건 GET, 대조 틀림 0.
 - 참고 자료: 학생이 공유한 통과 사례 `STAGE-12-PASS-GUIDE.md` — observed는 사실값만(`HTTP 401`), 점검당 요청 1건, 심판이 읽는 점검 결과 API(`/api/checks`: total·blocked·failed·notRun·attempts)를 제출 묶음과 같은 목록에서 계산. 다음 실패 조건이 「실행 기록 대조」·「기록과 화면 수치」이면 이 구조를 근거로 수정 예정.
+- 5차 심판(커밋 `cdb916e`): 53점, 「실행 기록 대조」만 실패 — 실제로 보낸 GET 6건이 '그 attackId로 보낸 요청 기록 없음'(로컬 점검 not_run은 통과). 수정: 통과 사례 문서 근거로 observed를 `HTTP 401`처럼 사실값만 적고 설명은 expected로 옮김(헤더 표시는 유지).

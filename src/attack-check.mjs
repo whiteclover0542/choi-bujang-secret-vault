@@ -106,10 +106,9 @@ export async function runAttackChecks(config) {
       if (attackId === 'forged_user_header') Object.assign(headers, { 'X-User-Id': '00000000-0000-4000-8000-000000000000', 'X-Role': 'admin' });
       // 심판 실행기의 URL에는 searchParams가 없어 주소에 표시를 붙이지 않습니다(헤더 표시만).
       const res = await fetch(new URL(path, app), { method, headers, redirect: 'error', signal: AbortSignal.timeout(10000) });
-      const json = (res.headers.get('content-type') ?? '').includes('application/json');
-      const notes = await noteCount(res);
-      results.push({ attackId, expected: `로그인 없는 ${method} ${path.replace(/[0-9a-f-]{36}$/u, ':id')}는 401·403 JSON으로 거부`,
-        observed: `HTTP ${res.status}${json ? ' JSON' : ' 비JSON'} 응답${notes ? `, 메모 ${notes}건 노출` : ', 메모 없음'}` });
+      // observed에는 실행기가 기록한 응답과 대조할 수 있도록 사실값(HTTP 상태)만 적고, 설명은 expected에 둡니다.
+      results.push({ attackId, expected: `로그인 없는 ${method} ${path.replace(/[0-9a-f-]{36}$/u, ':id')}는 401·403 JSON으로 거부(메모 없음)`,
+        observed: `HTTP ${res.status}` });
     }
     if (config.step >= 6) {
       // 6~8단계: 로컬 판정기에 계약 모양의 가상 요청을 보내 봅니다. 미등록 기기·복합 이상 접속·구역 밖 요청의 실제 공격은 심판이 맡습니다.
@@ -163,10 +162,8 @@ export async function runAttackChecks(config) {
       }
       const restUrl = new URL('?select=id&limit=1', config.originalApiUrl ?? new URL('/rest/v1/notes', config.identityProvider.issuer));
       const res = await fetch(restUrl, { headers: { apikey: key, Authorization: `Bearer ${key}` }, redirect: 'error', signal: AbortSignal.timeout(10000) });
-      let rows = 0;
-      try { const data = await res.json(); rows = Array.isArray(data) ? data.length : 0; } catch { /* 비JSON은 0건 */ }
-      results.push({ attackId: 'anon_data_api_read', expected: 'anon 키로 원본 자료 직접 조회는 권한 없음으로 거부',
-        observed: `HTTP ${res.status}, 행 ${rows}건` });
+      results.push({ attackId: 'anon_data_api_read', expected: 'anon 키로 원본 자료 직접 조회는 권한 없음으로 거부(행 0건)',
+        observed: `HTTP ${res.status}` });
     }
     return results;
   }
