@@ -83,6 +83,18 @@
 - `/aleph.json`에 `allowedRoutes`(메모 API 경로)를 함께 냅니다.
 - 자기 점검의 anon 직접 조회는 `SUPABASE_PUBLISHABLE_KEY` 환경변수를 주고 `npm run bundle`을 실행할 때만 보냅니다. 없으면 미실행으로 기록합니다.
 
+## 6단계: 등록한 기기만 자료실에
+
+- 판정기 `src/decider.mjs`에 `device_registered` 규칙을 넣었습니다. 반 엔진이 확인해 보낸 `request.deviceRegistered`가 정확히 `true`일 때만 `allow`(`approved`)이고, `false`·값 없음·다른 값은 `deny`(`device_not_registered`)입니다. 계약(`docs/DECIDER_REQUEST.md`)에 없는 `request.device`·`identity`·`role`은 쓰지 않습니다.
+- 응답은 계약의 다섯 항목(`schema`, `requestId`, `decision`, `reasonCode`, `ruleIds`)만 돌려줍니다. 기존 자료실 주소·화면·메모 API는 바꾸지 않았습니다.
+- 따로 설치할 접속 프로그램은 없고, 인증서·CA·서명 키도 만들지 않습니다. 미등록 기기 공격은 심판이 가상 요청으로 확인합니다.
+
+### 확인 순서
+
+1. 저장소 루트에서 `npm run decider:test`를 실행합니다.
+2. `통과 · 등록 기기의 정상 요청`(allow)과 `통과 · 미등록 기기의 가상 요청`(deny·device_not_registered) 두 줄이 모두 나와야 합니다.
+3. 이 명령은 가상 요청 연습이며 심판 판정이 아닙니다. `npm run fixture:7`은 7단계 연습이라 6단계에서는 실패하는 것이 정상입니다.
+
 ## 보너스 xdr-01: 무차별 로그인 공격 탐지
 
 - `xdr/brute-force/read-alerts.mjs`: 경보에서 시각·주소·계정·규칙 수준·설명만 뽑습니다(비밀값 모양은 가림).
