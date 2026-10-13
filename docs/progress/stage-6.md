@@ -2,7 +2,7 @@
 
 ## 해야 할 일
 
-- push·배포 확인 후 6단계 카드에 제출
+- 6단계 카드에 제출하고 결과 확인
 
 ## 작업 순서
 
@@ -14,8 +14,9 @@
 | ✅ | 만들기 2 · `device_registered` 규칙 추가 |
 | ✅ | 만들기 3 · `npm run decider:test` 실행과 README 기록 |
 | ✅ | 저장점 준비 · `starter.deny` 정리, `step` 6, 자기 점검 6단계 확장 |
-| 🔄 | 제출 전 확인 · 6단계 저장점 커밋, `npm run bundle` |
-| ⬜ | push·배포 확인, 6단계 제출 |
+| ✅ | 제출 전 확인 · 6단계 저장점 커밋(`401d269`), `npm run bundle` |
+| ✅ | push·배포 확인 (`/aleph.json` 커밋 `401d269`, step 6, 메인 화면 200) |
+| ⬜ | 6단계 카드에 제출, 결과 확인 |
 
 ## 완료한 일
 
@@ -26,3 +27,4 @@
 - 추가 확인: 값 없음·`"true"` 문자열·`null`·`1` 모두 deny.
 - README에 6단계 절과 확인 순서 기록. 설치할 프로그램·키·인증서 없음.
 - 저장점 준비: `RULE_IDS`를 실제 구현한 `device_registered` 하나로 정리, `aleph.config.json` `step` 6, `src/attack-check.mjs`가 6단계에서 기존 비로그인 점검 + 로컬 판정기 가상 요청 2건(등록 allow·미등록 deny)을 기록.
+- 저장점 커밋 `401d269`. `npm run bundle`: 단계 6 · 바뀐 파일 13개 · 규칙 1개(`device_registered`) · 직접 점검 7개(비로그인 401 ×4, 로컬 판정기 가상 요청 2건 기대와 같음, anon 직접 조회는 키 환경변수 없어 미실행).

@@ -12,7 +12,8 @@
 | 5 | 자료 요청을 서버 한곳으로 | ✅ | `f13b7ec`, `71e41d3` | [stage-5.md](stage-5.md) |
 | 보너스 XDR-01 | 무차별 로그인 탐지 | ✅ (제출·결과 확인) | `06a6e2f`, `60cdc61` | [bonus-xdr-01.md](bonus-xdr-01.md) |
 | 보너스 XDR-02 | 웹 주입 탐지 | ✅ (제출·결과 확인) | `67b0e00` | [bonus-xdr-02.md](bonus-xdr-02.md) |
-| 6 | 등록한 기기만 자료실에 | 🔄 (저장점) | 6단계 저장점 | [stage-6.md](stage-6.md) |
+| 6 | 등록한 기기만 자료실에 | 🔄 (저장점) | `401d269` | [stage-6.md](stage-6.md) |
+| 7 | 평소와 다른 접속은 다시 확인 | 🔄 (저장점) | 7단계 저장점 | [stage-7.md](stage-7.md) |
 
 표시: ✅ 완료 · 🔄 진행 중 · ⬜ 미완료
 
@@ -64,3 +65,7 @@
 ## 6단계 — 등록한 기기만 자료실에 (진행 중)
 
 - 판정기에 `device_registered` 규칙(등록 기기만 allow, 그 외 deny·`device_not_registered`)을 넣고 `npm run decider:test` 두 항목 통과. 세부는 [stage-6.md](stage-6.md).
+
+## 7단계 — 평소와 다른 접속은 다시 확인 (진행 중)
+
+- 판정기에 `step_up_required` 규칙(신뢰 신호의 새벽 + 처음 보는 네트워크 + 대량 요청 → step_up, 엔진 검증 재로그인 5분 이내면 allow)과 접속 정보 출처 검사를 넣음. `npm run decider:test` 4항목·`fixture:7` 통과. 실제 자료 차단 실측은 미실행. 세부는 [stage-7.md](stage-7.md).

@@ -40,7 +40,7 @@ export async function runAttackChecks(config) {
     return [{ attackId: 'anonymous_note_read', expected: '비로그인 화면에서 가상 메모를 확인',
       observed: visible ? '비로그인 요청에서 공개 가상 메모 확인 표시가 보임' : `비로그인 요청에서 확인 표시가 보이지 않음 (HTTP ${response.status})` }];
   }
-  if (config.step >= 3 && config.step <= 6) {
+  if (config.step >= 3 && config.step <= 7) {
     // 로그인 없이 보낸 요청만 직접 점검합니다. A·B 로그인 점검은 비밀번호가 필요해 여기서 실행하지 않습니다.
     const tries = [
       ['anonymous_list_read', 'GET', '/api/notes'],
@@ -60,13 +60,23 @@ export async function runAttackChecks(config) {
         observed: `HTTP ${res.status}${json ? ' JSON' : ' 비JSON'} 응답${notes ? `, 메모 ${notes}건 노출` : ', 메모 없음'}` });
     }
     if (config.step >= 6) {
-      // 6단계: 로컬 판정기에 가상 요청을 보내 봅니다. 미등록 기기의 실제 공격은 심판이 맡습니다.
+      // 6·7단계: 로컬 판정기에 가상 요청을 보내 봅니다. 미등록 기기·복합 이상 접속의 실제 공격은 심판이 맡습니다.
+      const DECIDER_CHECKS = {
+        '등록 기기의 정상 요청': ['registered_device_request', '로컬 판정기: 등록 기기 정상 요청은 allow'],
+        '미등록 기기의 가상 요청': ['unregistered_device_request', '로컬 판정기: 미등록 기기 가상 요청은 deny·device_not_registered'],
+        '복합 이상 접속': ['unusual_access_step_up', '로컬 판정기: 새벽·처음 보는 네트워크·대량 요청 가상 사건은 step_up·step_up_required'],
+        '다시 확인한 복합 이상 접속': ['unusual_access_after_relogin', '로컬 판정기: 엔진이 검증한 새 로그인 뒤 같은 사건은 allow'],
+      };
       for (const { name, passed } of await checkDecider({ decide, ruleIds: RULE_IDS })) {
-        const unregistered = name.includes('미등록');
-        results.push({ attackId: unregistered ? 'unregistered_device_request' : 'registered_device_request',
-          expected: unregistered ? '로컬 판정기: 미등록 기기 가상 요청은 deny·device_not_registered' : '로컬 판정기: 등록 기기 정상 요청은 allow',
+        const [attackId, expected] = DECIDER_CHECKS[name] ?? [];
+        if (!attackId) continue;
+        results.push({ attackId, expected,
           observed: `로컬 판정기 가상 요청 결과 ${passed ? '기대와 같음' : '기대와 다름'} (심판 판정 아님)` });
       }
+    }
+    if (config.step >= 7) {
+      results.push({ attackId: 'relogin_live_block', expected: '재로그인 전 실제 자료 차단, 새 로그인 뒤 요청 허용',
+        observed: '미실행: 새 로그인 시각을 검증하는 제공 엔진이 이 환경에 없어 실제 요청을 보내지 않음' });
     }
     if (config.step >= 4) {
       // 공개 키(anon)로 원본 자료 주소를 직접 읽어 봅니다. 5단계부터 화면 코드에는 키가 없어 환경변수로 받습니다.
