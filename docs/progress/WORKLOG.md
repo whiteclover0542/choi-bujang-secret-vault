@@ -14,7 +14,8 @@
 | 보너스 XDR-02 | 웹 주입 탐지 | ✅ (제출·결과 확인) | `67b0e00` | [bonus-xdr-02.md](bonus-xdr-02.md) |
 | 6 | 등록한 기기만 자료실에 | ✅ (제출 완료) | `401d269` | [stage-6.md](stage-6.md) |
 | 7 | 평소와 다른 접속은 다시 확인 | ✅ (제출 완료) | `d6f54b9` | [stage-7.md](stage-7.md) |
-| 8 | 자료마다 갈 수 있는 구역 | 🔄 (재제출) | `547f1c8` | [stage-8.md](stage-8.md) |
+| 8 | 자료마다 갈 수 있는 구역 | ✅ (재제출 완료) | `547f1c8`, `c05eb7a` | [stage-8.md](stage-8.md) |
+| 9 | 도플갱어를 찾고 권한을 거둠 | 🔄 (저장점) | 9단계 저장점 | [stage-9.md](stage-9.md) |
 
 표시: ✅ 완료 · 🔄 진행 중 · ⬜ 미완료
 
@@ -71,6 +72,10 @@
 
 - 판정기에 `step_up_required` 규칙(신뢰 신호의 새벽 + 처음 보는 네트워크 + 대량 요청 → step_up, 엔진 검증 재로그인 5분 이내면 allow)과 접속 정보 출처 검사를 넣음. `npm run decider:test` 4항목·`fixture:7` 통과. 실제 자료 차단 실측은 미실행. 세부는 [stage-7.md](stage-7.md).
 
-## 8단계 — 자료마다 갈 수 있는 구역 (진행 중)
+## 8단계 — 자료마다 갈 수 있는 구역
 
 - 강사 공지(`notices`)·강사 표(`instructors`)와 공지 API를 새로 만들고, 메모·공지에 서로 다른 자원 ID(`note:`/`notice:`)를 붙임. 판정기에 `resource_zone` 규칙(정확한 경로 모양별 구역, 알 수 없는 경로·공지 수정 거부), 공지 수정 API는 강사 표 대조. 세부는 [stage-8.md](stage-8.md).
+
+## 9단계 — 도플갱어를 찾고 권한을 거둠 (진행 중)
+
+- `src/detect.mjs`에 계약대로 탐지 규칙(같은 가명 사용자의 GET이 10분 안 120건 초과 → `propose_revocation`·`burst_read`)을 넣음. `npm run detect:test` 6항목 통과. 세부는 [stage-9.md](stage-9.md).

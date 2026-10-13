@@ -121,6 +121,19 @@
 2. 로그인 없이 `curl -si -X PUT https://choi-bujang-secret-vault-chi.vercel.app/api/notices/00000000-0000-4000-8000-000000000000` → `401 LOGIN_REQUIRED`.
 3. A 로그인 화면에서 자기 메모는 그대로 열리고, A·B 토큰으로 공지 `PUT`은 `403 NOT_INSTRUCTOR`, B 토큰으로 A 메모 id는 `403 NOT_NOTE_OWNER`, 강사 계정 토큰으로 공지 `PUT`은 200이어야 합니다(비밀번호가 필요해 `npm run bundle`에서는 실행하지 않음).
 
+## 9단계: 도플갱어를 찾고 권한을 거둡니다
+
+- 탐지 함수 `src/detect.mjs`의 `detect(events)`는 `docs/DETECT_EVENTS.md` 계약을 따릅니다. 사건마다 시각(`at`)·요청 종류(`method`)·가명 사용자(`identity.sub`)만 읽고, 형식이 틀린 사건은 건너뜁니다. 메모 내용·토큰·실명은 읽거나 출력하지 않습니다.
+- 같은 가명 사용자의 `GET`이 어느 10분 구간에서든 120건을 **넘을 때만** `{ action: 'propose_revocation', reasonCode: 'burst_read', subject }`로 회수를 제안하고, 그 밖은 `{ action: 'observe' }`로 정상 사용자를 유지합니다. 다른 사용자의 조회는 합산하지 않습니다.
+- 회수는 제안만 합니다. 회수 API를 만들거나 기기 권한을 바꾸지 않았고, 판정기 `decide()`의 응답 형식도 그대로입니다. 실제 회수와 경과 시간은 심판이 가상 사건으로 확인합니다.
+- 안내 문구의 "평소와 다른 네트워크"·"가상 기기 대상"은 현재 사건 계약에 네트워크·기기 값이 없어 넣지 않았습니다(없는 값을 만들어 쓰지 않음). 회수 대상은 계약의 가명 사용자 하나입니다.
+- `npm run detect:test` 통과는 로컬 가상 사건 연습이며, 운영 반 엔진의 사건 전달·접속 회수가 연결됐다는 뜻이 아닙니다.
+
+### 확인 순서
+
+1. `npm run detect:test` → 정상 30건·120건·서로 다른 사용자·10분 밖 조회는 observe, 121건·200건은 회수 제안으로 여섯 줄 모두 `통과`.
+2. `node --test test/detect.test.mjs` → 계약 밖 값 무시, 형식 틀린 사건 제외, GET만 집계, 10분 경계 시험 통과.
+
 ## 보너스 xdr-01: 무차별 로그인 공격 탐지
 
 - `xdr/brute-force/read-alerts.mjs`: 경보에서 시각·주소·계정·규칙 수준·설명만 뽑습니다(비밀값 모양은 가림).

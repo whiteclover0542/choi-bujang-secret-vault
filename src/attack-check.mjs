@@ -2,6 +2,8 @@
 // Never return tokens, private keys, real names, or note bodies.
 import { checkDecider } from '../scripts/decider-test.mjs';
 import { fixtureRequests } from '../scripts/fixture-7.mjs';
+import { checkDetection } from '../scripts/detect-test.mjs';
+import { detect } from './detect.mjs';
 import { decide, RULE_IDS } from './decider.mjs';
 const get = (path, app) => fetch(new URL(path, app), { redirect: 'error', signal: AbortSignal.timeout(10000) });
 const noteCount = async response => {
@@ -41,7 +43,7 @@ export async function runAttackChecks(config) {
     return [{ attackId: 'anonymous_note_read', expected: '비로그인 화면에서 가상 메모를 확인',
       observed: visible ? '비로그인 요청에서 공개 가상 메모 확인 표시가 보임' : `비로그인 요청에서 확인 표시가 보이지 않음 (HTTP ${response.status})` }];
   }
-  if (config.step >= 3 && config.step <= 8) {
+  if (config.step >= 3 && config.step <= 9) {
     // 로그인 없이 보낸 요청만 직접 점검합니다. A·B 로그인 점검은 비밀번호가 필요해 여기서 실행하지 않습니다.
     const tries = [
       ['anonymous_list_read', 'GET', '/api/notes'],
@@ -92,6 +94,19 @@ export async function runAttackChecks(config) {
         { attackId: 'unknown_route_zone', expected: '로컬 판정기: 구역 목록에 없는 경로는 deny·route_not_allowed',
           observed: `로컬 판정기 가상 요청 ${unknown.decision}·${unknown.reasonCode} (심판 판정 아님)` },
       );
+    }
+    if (config.step >= 9) {
+      // 9단계: 로컬 탐지 함수에 가상 조회 사건을 보내 봅니다. 실제 회수와 경과 시간은 심판이 확인합니다.
+      const DETECT_IDS = {
+        '정상 조회 30건': 'detect_normal_reads', '10분 안에 120건': 'detect_reads_at_limit',
+        '10분 안에 121건': 'detect_burst_over_limit', '폭주 조회 200건': 'detect_burst_200',
+        '서로 다른 사용자 각 100건': 'detect_other_users_not_summed', '10분 밖으로 흩어진 조회 200건': 'detect_spread_reads',
+      };
+      for (const { name, passed } of await checkDetection(detect)) {
+        if (!DETECT_IDS[name]) continue;
+        results.push({ attackId: DETECT_IDS[name], expected: `로컬 탐지: ${name} — 120건 초과만 propose_revocation·burst_read`,
+          observed: `로컬 탐지 가상 사건 결과 ${passed ? '기대와 같음' : '기대와 다름'} (실제 회수·심판 판정 아님)` });
+      }
     }
     if (config.step >= 7) {
       results.push({ attackId: 'relogin_live_block', expected: '재로그인 전 실제 자료 차단, 새 로그인 뒤 요청 허용',
