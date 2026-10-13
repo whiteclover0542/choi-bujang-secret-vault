@@ -1,0 +1,12 @@
+{
+  "schema": "aleph.policy.backup.v1",
+  "version": "stage10-verified-2026-10-13",
+  "verifiedBy": "운영 배포 로그인 교차 점검 8항목 통과, 판정기 시험 통과",
+  "file": "decider.mjs",
+  "sha256": "6e1f77e647d6aeaab7985cdbeaacdce13511428644338f590a0b4d2efbe2f1e2",
+  "ruleIds": [
+    "device_registered",
+    "resource_zone",
+    "step_up_required"
+  ]
+}

@@ -134,6 +134,29 @@
 1. `npm run detect:test` → 정상 30건·120건·서로 다른 사용자·10분 밖 조회는 observe, 121건·200건은 회수 제안으로 여섯 줄 모두 `통과`.
 2. `node --test test/detect.test.mjs` → 계약 밖 값 무시, 형식 틀린 사건 제외, GET만 집계, 10분 경계 시험 통과.
 
+## 10단계: 백업에서 자료실을 되살립니다
+
+- 침해 전 기준: 운영 배포 로그인 교차 점검(8단계 스크립트) 8항목이 통과한 상태에서 정책·메모 사본을 만들었습니다.
+- 정책 사본(Git): `backup/policy/decider.mjs`(검증한 판정기 정책), `manifest.json`(버전·SHA-256·규칙 목록), `audit.log`(복원 감사 기록, 추가만).
+  - `npm run policy:diff` → 사본 해시를 다시 확인하고 복원할 버전과 바뀔 항목만 출력합니다. 사본이 없거나 해시가 다르면 중단합니다.
+  - `npm run policy:restore` → 바뀔 항목을 보여 준 뒤 시험 정책 파일 `src/decider.mjs`만 사본으로 되돌리고 감사 기록에 한 줄 추가합니다. 운영 엔진 정책, XDR·탐지 규칙은 바꾸지 않습니다.
+- 메모 사본(DB, Git 제외): `supabase/stage10-backup.sql`로 비공개 `notes_backup`(내용 해시 = SHA-256(제목+줄바꿈+본문))과 추가만 하는 `restore_audit`을 만듭니다. 브라우저용 역할 권한은 없습니다.
+- 복원 경로(서비스 `notes`): `POST /api/notes/:id/restore`(`aleph.config.json`의 `restoreRoute`). 사본을 다시 읽어 소유자(본인만, 아니면 403)·내용 해시(불일치 409로 중단)를 확인하고 지정한 한 건만 되돌린 뒤, 다시 읽어 ID·소유자·내용 해시가 사본과 같은지 응답(`matches`)으로 돌려주고 `restore_audit`에 한 줄 남깁니다. 다른 메모는 건드리지 않습니다. 판정기 구역에도 `POST /notes/:id/restore`를 등록했습니다.
+- `api/notes/[id].js`는 복원 경로를 붙이려고 `api/notes/[id]/index.js`로 옮겼습니다(주소 `/api/notes/:id` 그대로).
+
+### 복구 뒤 재시험 순서 (1~9단계)
+
+결과는 실제로 실행한 것만 기록하고, 실행하지 않은 항목은 미실행으로 둡니다. 로그인 점검은 `.env.local`(Git 제외)에 학생이 직접 넣은 시험 계정을 씁니다.
+
+1. 정책: `npm run policy:diff` → "현재 시험 정책이 사본과 같습니다". 다르면 `npm run policy:restore` 후 다시 확인.
+2. 메모 한 건 복원(시험 계정 B): `node --env-file=.env.local scripts/stage10-live-check.mjs` → B 메모 한 건 변조 뒤 복원, 비로그인 401·A가 B 메모 복원 403, 복원 뒤 해시 = 침해 전 해시, A 메모·B 다른 메모 그대로.
+3. 1·2단계: `curl -si https://choi-bujang-secret-vault-chi.vercel.app/data.json` → 404.
+4. 3·5단계: 비로그인 `/api/notes`·`/api/notices`·복원 경로 → 401 (`npm run bundle`의 직접 점검).
+5. 4·8단계: `node --env-file=.env.local scripts/stage8-live-check.mjs` → A 자기 메모 200, B의 A 메모 403, A·B 공지 수정 403, 강사 공지 수정 200, 다른 구역 404.
+6. 6~8단계 판정기: `npm run decider:test`, `npm run fixture:7`, `node --test test/decider.test.mjs`.
+7. 9단계 탐지: `npm run detect:test`.
+8. anon 키로 원본 자료 직접 조회(4·5단계)와 실제 재로그인 전 차단(7단계)은 키·엔진이 없어 미실행.
+
 ## 보너스 xdr-01: 무차별 로그인 공격 탐지
 
 - `xdr/brute-force/read-alerts.mjs`: 경보에서 시각·주소·계정·규칙 수준·설명만 뽑습니다(비밀값 모양은 가림).

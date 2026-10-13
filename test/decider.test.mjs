@@ -70,3 +70,9 @@ test('8단계: 자기 메모 구역과 공지 읽기는 허용, 공지 수정·�
   // 기기 규칙이 먼저입니다.
   assert.equal(await run(at('PUT', '/notices/:id', `/notices/${ID}`, { deviceRegistered: false })), 'deny/device_not_registered');
 });
+
+test('10단계: 자기 메모 한 건 복원 경로만 허용합니다', async () => {
+  assert.equal(await run(at('POST', '/notes/:id/restore', `/notes/${ID}/restore`)), 'allow/approved');
+  assert.equal(await run(at('GET', '/notes/:id/restore', `/notes/${ID}/restore`)), 'deny/route_not_allowed');
+  assert.equal(await run(at('POST', '/notes/restore', '/notes/restore')), 'deny/route_not_allowed');
+});

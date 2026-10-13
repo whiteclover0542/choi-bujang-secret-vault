@@ -1,4 +1,4 @@
-import { UUID, dbFailed, readNoteInput, requireUser } from '../../src/notes-api.mjs';
+import { UUID, dbFailed, readNoteInput, requireUser } from '../../../src/notes-api.mjs';
 
 // GET·PUT·DELETE /api/notes/:id
 // 4단계: 서버가 검증한 사용자 ID와 DB의 owner_id를 비교합니다. 본인 메모가 아니면 기본 거부합니다.

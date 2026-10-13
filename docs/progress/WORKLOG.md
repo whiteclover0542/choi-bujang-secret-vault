@@ -15,7 +15,8 @@
 | 6 | 등록한 기기만 자료실에 | ✅ (제출 완료) | `401d269` | [stage-6.md](stage-6.md) |
 | 7 | 평소와 다른 접속은 다시 확인 | ✅ (제출 완료) | `d6f54b9` | [stage-7.md](stage-7.md) |
 | 8 | 자료마다 갈 수 있는 구역 | ✅ (재제출 완료) | `547f1c8`, `c05eb7a` | [stage-8.md](stage-8.md) |
-| 9 | 도플갱어를 찾고 권한을 거둠 | 🔄 (저장점) | 9단계 저장점 | [stage-9.md](stage-9.md) |
+| 9 | 도플갱어를 찾고 권한을 거둠 | 🔄 (저장점) | `2bb98be` | [stage-9.md](stage-9.md) |
+| 10 | 백업에서 자료실을 되살림 | 🔄 (저장점) | 10단계 저장점 | [stage-10.md](stage-10.md) |
 
 표시: ✅ 완료 · 🔄 진행 중 · ⬜ 미완료
 
@@ -79,3 +80,7 @@
 ## 9단계 — 도플갱어를 찾고 권한을 거둠 (진행 중)
 
 - `src/detect.mjs`에 계약대로 탐지 규칙(같은 가명 사용자의 GET이 10분 안 120건 초과 → `propose_revocation`·`burst_read`)을 넣음. `npm run detect:test` 6항목 통과. 세부는 [stage-9.md](stage-9.md).
+
+## 10단계 — 백업에서 자료실을 되살림 (진행 중)
+
+- 판정기 정책 사본(`backup/policy`)과 차이 보기·되돌리기(`npm run policy:diff`/`policy:restore`), 비공개 메모 사본(`notes_backup`)에서 한 건만 복원하는 `POST /api/notes/:id/restore`(소유자·ID·해시 대조, `restore_audit`), README 재시험 순서. 세부는 [stage-10.md](stage-10.md).
