@@ -17,8 +17,8 @@
 | 8 | 자료마다 갈 수 있는 구역 | ✅ (재제출 완료) | `547f1c8`, `c05eb7a` | [stage-8.md](stage-8.md) |
 | 9 | 도플갱어를 찾고 권한을 거둠 | ✅ (제출 완료) | `2bb98be` | [stage-9.md](stage-9.md) |
 | 10 | 백업에서 자료실을 되살림 | ✅ (제출 완료) | `c791ba5` | [stage-10.md](stage-10.md) |
-| 11 | 나만의 접속 앱 완성 | 🔄 (재제출 준비) | `2987c1f` | [stage-11.md](stage-11.md) |
-| 12 | 탈환 작전실 완성 | 🔄 (저장점) | `afa2207` | [stage-12.md](stage-12.md) |
+| 11 | 나만의 접속 앱 완성 | ✅ (재제출 완료) | `2987c1f`, `5e9b39c` | [stage-11.md](stage-11.md) |
+| 12 | 탈환 작전실 완성 | 🔄 (재제출 준비) | `afa2207`, `6404afd` | [stage-12.md](stage-12.md) |
 
 표시: ✅ 완료 · 🔄 진행 중 · ⬜ 미완료
 
@@ -87,7 +87,7 @@
 
 - 판정기 정책 사본(`backup/policy`)과 차이 보기·되돌리기(`npm run policy:diff`/`policy:restore`), 비공개 메모 사본(`notes_backup`)에서 한 건만 복원하는 `POST /api/notes/:id/restore`(소유자·ID·해시 대조, `restore_audit`), README 재시험 순서. 세부는 [stage-10.md](stage-10.md).
 
-## 11단계 — 나만의 접속 앱 완성 (진행 중)
+## 11단계 — 나만의 접속 앱 완성
 
 - 설치형 웹앱(manifest·아이콘·오프라인 안내)과 기기 승인 흐름(HttpOnly 쿠키 세션·서버 발급 기기 ID, pending→SQL 승인, 미승인 기기는 자료 API 403)을 만듦. 세부는 [stage-11.md](stage-11.md).
 

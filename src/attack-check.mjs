@@ -65,10 +65,15 @@ export async function runAttackChecks(config) {
     ];
     const results = [];
     for (const [attackId, method, path] of tries) {
+      // 심판 격리 환경은 공개 HTTPS 주소에 GET·HEAD만 보낼 수 있습니다. 쓰기 요청 점검은 보내지 않고 not_run으로 남깁니다.
+      if (!['GET', 'HEAD'].includes(method)) {
+        results.push({ attackId, expected: `로그인 없는 ${method} ${path.replace(/[0-9a-f-]{36}/u, ':id')}는 401·403 JSON으로 거부`,
+          observed: 'not_run: 쓰기 요청은 제출 묶음 점검에서 보내지 않음(운영 배포 실측은 docs/verification 실측표)' });
+        continue;
+      }
       const headers = { 'Content-Type': 'application/json' };
       if (attackId === 'forged_user_header') Object.assign(headers, { 'X-User-Id': '00000000-0000-4000-8000-000000000000', 'X-Role': 'admin' });
-      const res = await fetch(new URL(path, app), { method, headers, redirect: 'error', signal: AbortSignal.timeout(10000),
-        body: ['POST', 'PUT'].includes(method) ? JSON.stringify({ title: '무로그인 시도', body: '거부되어야 함', role: 'instructor' }) : undefined });
+      const res = await fetch(new URL(path, app), { method, headers, redirect: 'error', signal: AbortSignal.timeout(10000) });
       const json = (res.headers.get('content-type') ?? '').includes('application/json');
       const notes = await noteCount(res);
       results.push({ attackId, expected: `로그인 없는 ${method} ${path.replace(/[0-9a-f-]{36}$/u, ':id')}는 401·403 JSON으로 거부`,

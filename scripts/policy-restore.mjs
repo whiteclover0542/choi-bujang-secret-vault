@@ -3,7 +3,9 @@
 //   npm run policy:restore  → 같은 출력 뒤 시험 정책 파일만 사본으로 되돌리고 감사 기록에 한 줄 추가
 // 사본이 없거나 해시가 맞지 않으면 중단합니다. 운영 엔진 정책·다른 서비스 규칙(xdr, detect)·감사 기록은 바꾸지 않습니다.
 import { createHash } from 'node:crypto';
-import { appendFile, copyFile, readFile } from 'node:fs/promises';
+// 심판 격리 환경은 node:fs만 허용하므로 node:fs/promises 대신 node:fs의 promises를 씁니다.
+import { promises as fsp } from 'node:fs';
+const { appendFile, copyFile, readFile } = fsp;
 import { resolve } from 'node:path';
 import { fileURLToPath, pathToFileURL } from 'node:url';
 

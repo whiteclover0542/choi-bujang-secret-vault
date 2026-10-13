@@ -1,6 +1,10 @@
 import { resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { isDeepStrictEqual } from 'node:util';
+
+// 심판 격리 환경에서는 node:util을 쓸 수 없어, 결과(문자열 값만 가진 평평한 객체)를 직접 비교합니다.
+const sameResult = (actual, expected) => Boolean(actual) && typeof actual === 'object' && !Array.isArray(actual)
+  && Object.keys(actual).length === Object.keys(expected).length
+  && Object.keys(expected).every((key) => actual[key] === expected[key]);
 
 const START = Date.UTC(2026, 9, 1, 0, 0, 0);
 const subject = 'learner_fixture';
@@ -32,7 +36,7 @@ export async function checkDetection(detect) {
   const results = [];
   for (const item of cases) {
     const actual = await detect(item.events);
-    const passed = isDeepStrictEqual(actual, item.expected);
+    const passed = sameResult(actual, item.expected);
     results.push({ name: item.name, passed: Boolean(passed) });
   }
   return results;

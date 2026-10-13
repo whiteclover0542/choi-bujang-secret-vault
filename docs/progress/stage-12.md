@@ -2,7 +2,7 @@
 
 ## 해야 할 일
 
-- 12단계 카드 제출(11단계 수정 `5e9b39c` 이후 커밋 기준으로 다시 제출 권장)
+- 12단계 다시 제출, 결과 확인
 
 ## 작업 순서
 
@@ -15,7 +15,9 @@
 | ✅ | 만들기 3 · 설치·실행·중지·복구 안내와 출처 (README) |
 | ✅ | 저장점 준비 · 판정기 구역 `GET /ops/summary`·정책 사본 `stage12-verified`, `allowedRoutes`, `step` 12, 자기 점검(비로그인 작전실) |
 | ✅ | 제출 전 확인 · 12단계 저장점 커밋(`afa2207`), push·배포 확인, 실측표, `npm run bundle` |
-| ⬜ | 12단계 제출 |
+| ✅ | 1차 제출 (`6404afd`) — 0/100, `S12_BUNDLE_UNSUPPORTED`(격리 환경에서 `npm run bundle`이 `node:util`을 불러옴) |
+| ✅ | 수정 · `node:util`·`node:fs/promises` 제거, 쓰기 요청 점검 not_run |
+| ⬜ | 다시 제출, 결과 확인 |
 
 ## 완료한 일
 
@@ -29,3 +31,6 @@
 - 저장점 준비: 판정기 시험 7개, 전체 시험 21개 통과, `policy:diff`가 새 경로 1개 차이를 잡은 뒤 사본 갱신·감사 기록 한 줄.
 - 저장점 `afa2207` push·배포 확인. 실측표 `docs/verification/matrix-afa2207.md`: 운영 배포 실측 21건 통과(1~12단계 정상·금지, 요청 ID `x-vercel-id`·확인 시각 포함), 로컬 판정기·탐지 14건 통과(로컬), 미실행 4건(anon 키 직접 조회, 실제 재로그인 차단, 실제 회수 집행, 심판 총공세 41종). 작전실 요약 수치 = 메모·공지 목록 API(3/3, 1/1), 기기 approved, 정책 `stage12-verified` 해시 확인, 탐지·회수 not_run.
 - 11단계 수정(심판 토큰도 기기 승인 확인)이 작전실·자료 API에 함께 적용됨. 수정 배포 기준 실측표 `docs/verification/matrix-5e9b39c.md` 추가.
+- 1차 심판(커밋 `6404afd`): 0/100, `S12_BUNDLE_UNSUPPORTED` — 심판 격리 환경은 node:fs·path·url·child_process(git 읽기)·crypto(randomUUID·sha256)만 허용, npm 패키지 불가, 요청은 공개 HTTPS GET·HEAD만.
+- 원인: `npm run bundle` → `src/attack-check.mjs` → `scripts/detect-test.mjs`가 `node:util`(isDeepStrictEqual)을 불러옴. 같은 경로의 `scripts/policy-restore.mjs`도 `node:fs/promises` 사용, 자기 점검이 POST·PUT 3건을 보냄.
+- 수정: `detect-test.mjs`는 평평한 결과 객체를 직접 비교(동작 같음, `detect:test` 6항목 통과), `policy-restore.mjs`는 `node:fs`의 promises 사용, 자기 점검의 쓰기 요청 3건(메모 추가·공지 수정·복원)은 보내지 않고 `not_run`. 허용 목록 밖 모듈을 막는 로더로 자기 점검 19개를 끝까지 실행해 확인.
