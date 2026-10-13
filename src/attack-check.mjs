@@ -1,6 +1,7 @@
 // The student changes this check as each stage adds an attack to the same app.
 // Never return tokens, private keys, real names, or note bodies.
 import { checkDecider } from '../scripts/decider-test.mjs';
+import { fixtureRequests } from '../scripts/fixture-7.mjs';
 import { decide, RULE_IDS } from './decider.mjs';
 const get = (path, app) => fetch(new URL(path, app), { redirect: 'error', signal: AbortSignal.timeout(10000) });
 const noteCount = async response => {
@@ -40,20 +41,25 @@ export async function runAttackChecks(config) {
     return [{ attackId: 'anonymous_note_read', expected: '비로그인 화면에서 가상 메모를 확인',
       observed: visible ? '비로그인 요청에서 공개 가상 메모 확인 표시가 보임' : `비로그인 요청에서 확인 표시가 보이지 않음 (HTTP ${response.status})` }];
   }
-  if (config.step >= 3 && config.step <= 7) {
+  if (config.step >= 3 && config.step <= 8) {
     // 로그인 없이 보낸 요청만 직접 점검합니다. A·B 로그인 점검은 비밀번호가 필요해 여기서 실행하지 않습니다.
     const tries = [
       ['anonymous_list_read', 'GET', '/api/notes'],
       ['anonymous_note_create', 'POST', '/api/notes'],
       ['anonymous_note_read_by_id', 'GET', '/api/notes/00000000-0000-4000-8000-000000000000'],
       ['forged_user_header', 'GET', '/api/notes'],
+      // 8단계: 강사 공지 구역도 로그인 없이는 읽거나 고칠 수 없어야 합니다.
+      ...(config.step >= 8 ? [
+        ['anonymous_notice_read', 'GET', '/api/notices'],
+        ['anonymous_notice_update', 'PUT', '/api/notices/00000000-0000-4000-8000-000000000000'],
+      ] : []),
     ];
     const results = [];
     for (const [attackId, method, path] of tries) {
       const headers = { 'Content-Type': 'application/json' };
       if (attackId === 'forged_user_header') Object.assign(headers, { 'X-User-Id': '00000000-0000-4000-8000-000000000000', 'X-Role': 'admin' });
       const res = await fetch(new URL(path, app), { method, headers, redirect: 'error', signal: AbortSignal.timeout(10000),
-        body: method === 'POST' ? JSON.stringify({ title: '무로그인 시도', body: '거부되어야 함' }) : undefined });
+        body: ['POST', 'PUT'].includes(method) ? JSON.stringify({ title: '무로그인 시도', body: '거부되어야 함', role: 'instructor' }) : undefined });
       const json = (res.headers.get('content-type') ?? '').includes('application/json');
       const notes = await noteCount(res);
       results.push({ attackId, expected: `로그인 없는 ${method} ${path.replace(/[0-9a-f-]{36}$/u, ':id')}는 401·403 JSON으로 거부`,
@@ -73,6 +79,19 @@ export async function runAttackChecks(config) {
         results.push({ attackId, expected,
           observed: `로컬 판정기 가상 요청 결과 ${passed ? '기대와 같음' : '기대와 다름'} (심판 판정 아님)` });
       }
+    }
+    if (config.step >= 8) {
+      // 8단계: 로컬 판정기에 구역 밖 가상 요청을 보내 봅니다(엔진 요청 모양, 심판 판정 아님).
+      const { normal } = fixtureRequests();
+      const zone = async (method, route, path) => decide({ ...normal, method, route: `${method} ${route}`, path });
+      const noticeEdit = await zone('PUT', '/notices/:id', '/notices/demo');
+      const unknown = await zone('GET', '/notes/export', '/notes/export');
+      results.push(
+        { attackId: 'student_notice_update_zone', expected: '로컬 판정기: 공지 수정은 역할 계약이 없어 deny·instructor_required',
+          observed: `로컬 판정기 가상 요청 ${noticeEdit.decision}·${noticeEdit.reasonCode} (심판 판정 아님)` },
+        { attackId: 'unknown_route_zone', expected: '로컬 판정기: 구역 목록에 없는 경로는 deny·route_not_allowed',
+          observed: `로컬 판정기 가상 요청 ${unknown.decision}·${unknown.reasonCode} (심판 판정 아님)` },
+      );
     }
     if (config.step >= 7) {
       results.push({ attackId: 'relogin_live_block', expected: '재로그인 전 실제 자료 차단, 새 로그인 뒤 요청 허용',

@@ -23,7 +23,7 @@ export default async function handler(request, response) {
   if (!row) return notFound(response);
   if (row.owner_id !== user.userId) return forbidden(response);
 
-  if (request.method === 'GET') return response.status(200).json({ id: row.id, title: row.title, body: row.body });
+  if (request.method === 'GET') return response.status(200).json({ resource: `note:${row.id}`, id: row.id, title: row.title, body: row.body });
 
   if (request.method === 'PUT') {
     // 새 행의 소유자도 본인이어야 합니다. 본문으로 소유자를 바꾸려 하면 거부합니다.
@@ -34,7 +34,7 @@ export default async function handler(request, response) {
     const { data, error } = await db.from('notes').update(input)
       .eq('id', id).eq('owner_id', user.userId).select('id, title, body').maybeSingle();
     if (error) return dbFailed(response, '수정', error);
-    return data ? response.status(200).json(data) : notFound(response);
+    return data ? response.status(200).json({ resource: `note:${data.id}`, ...data }) : notFound(response);
   }
 
   const { data, error } = await db.from('notes').delete()

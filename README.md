@@ -108,6 +108,19 @@
 3. `node --test test/decider.test.mjs` → 위조 출처 무시, 단일 이상 허용, 재로그인 조건 시험 통과.
 4. 모두 가상 요청 연습이며 심판 판정이 아닙니다.
 
+## 8단계: 자료마다 갈 수 있는 구역
+
+- 자원 구역: 메모는 `note:<id>`(`/api/notes`), 강사 공지는 `notice:<id>`(`/api/notices`)로 응답에 자원 ID를 붙여 구분합니다. 기존 메모 주소·자료·화면은 그대로이고, 화면 메뉴는 바꾸지 않았습니다.
+- 공지 API: `GET /api/notices`(목록), `GET /api/notices/:id`는 로그인 사용자 누구나, `PUT /api/notices/:id`는 서버가 검증한 사용자 ID가 `instructors` 표에 있을 때만 허용하고 아니면 `403 NOT_INSTRUCTOR`입니다. 화면 메뉴·요청 본문·헤더의 role은 읽지 않습니다. 메모는 4단계 소유자 검사(`403 NOT_NOTE_OWNER`)를 유지합니다.
+- DB: `supabase/stage8-notices.sql`을 SQL Editor에서 실행해 `notices`·`instructors` 테이블을 만들고(브라우저용 역할 권한 없음, 가상 공지 1건), 강사 시험 계정은 SQL Editor에서 직접 지정합니다(이메일은 Git에 넣지 않음).
+- 판정기 규칙 `resource_zone`: 엔진이 확인한 `method`·`route`·`path`가 구역 목록과 정확히 맞을 때만 통과합니다. 메모 경로 5개·공지 읽기 2개는 허용, 공지 수정은 계약에 역할 정보가 없어 `deny`(`instructor_required`), 그 밖의 경로·`:id` 깊이의 기능 경로·경로 불일치·쿼리 있는 요청은 `deny`(`route_not_allowed`)입니다. 기기 → 구역 → 복합 이상 순서로 판정합니다. 두 이유 코드는 안내에 목록이 없어 직접 정했습니다.
+
+### 확인 순서
+
+1. `node --test test/decider.test.mjs`와 `npm run decider:test` → 모두 통과.
+2. 로그인 없이 `curl -si -X PUT https://choi-bujang-secret-vault-chi.vercel.app/api/notices/00000000-0000-4000-8000-000000000000` → `401 LOGIN_REQUIRED`.
+3. A 로그인 화면에서 자기 메모는 그대로 열리고, A·B 토큰으로 공지 `PUT`은 `403 NOT_INSTRUCTOR`, B 토큰으로 A 메모 id는 `403 NOT_NOTE_OWNER`, 강사 계정 토큰으로 공지 `PUT`은 200이어야 합니다(비밀번호가 필요해 `npm run bundle`에서는 실행하지 않음).
+
 ## 보너스 xdr-01: 무차별 로그인 공격 탐지
 
 - `xdr/brute-force/read-alerts.mjs`: 경보에서 시각·주소·계정·규칙 수준·설명만 뽑습니다(비밀값 모양은 가림).
