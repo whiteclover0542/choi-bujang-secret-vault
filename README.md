@@ -215,3 +215,11 @@
 - `xdr/web-injection/decide.mjs`: import 없는 단일 파일. 패턴에 맞으면 block, T1190인데 기준 미달이면 Jev(`JEV_URL`, 수준·건수만 전송)에게 묻고 응답이 없으면 alert, 그 외 record.
 - `xdr/web-injection/respond.mjs`: xdr-01의 `respond`를 같은 `xdr/blocklist.json`·`xdr/alerts.log`에 연결합니다. 다른 모듈 규칙은 보존하고 같은 경보 알림은 다시 쓰지 않습니다. 판정기 운영 경로와는 연결하지 않았습니다(모의 시험).
 - 다시 실행: `npm run xdr:run -- web-injection`, `node xdr/web-injection/respond.mjs`, `node --test test/xdr-web-injection.test.mjs`. 로컬 연습이며 심판 판정이 아닙니다. Jev는 연결 정보가 없어 alert로 처리합니다.
+
+## 보너스 xdr-03: 알려진 취약점(CVE-2021-44228) 악용 탐지
+
+- `xdr/known-cve/read-alerts.mjs`: 경보에서 시각·주소·계정·규칙 수준·설명만 뽑는 확인용 모듈(decide.mjs가 불러오지 않음).
+- `xdr/known-cve/patterns.json`: CVE-2021-44228·MITRE ATT&CK T1190 근거의 원격 조회 구문(`${jndi:ldap|rmi|dns|…://`, 인코딩·끼워 넣기 풀이 후 확인)과 점검 도구 흔적 두 패턴.
+- `xdr/known-cve/decide.mjs`: import·파일 접근·바깥 요청 없는 단일 파일. 완전한 원격 조회 구문 + 수준 10 이상은 block(요청 한 건으로 성립하므로 반복 수 요구 없음), 구문만 있고 수준 미달·도구 흔적만·글자만은 alert, 그 외 record.
+- `xdr/known-cve/respond.mjs`: xdr-01의 `respond`로 같은 `xdr/blocklist.json`·`xdr/alerts.log`에 연결(판정기 운영 경로와는 연결하지 않은 모의 시험).
+- 다시 실행: `npm run xdr:run -- known-cve`, `node xdr/known-cve/respond.mjs`, `node --test test/xdr-known-cve.test.mjs`. 로컬 연습이며 심판 판정이 아닙니다.

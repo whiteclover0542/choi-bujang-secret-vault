@@ -1,0 +1,34 @@
+{
+  "schema": "aleph.xdr.patterns.v1",
+  "moduleKey": "known-cve",
+  "note": "lookupRegex는 요청 주소(두 번까지 디코딩)와 사용자 에이전트 머리글을 소문자로 바꾸고 ${lower:x}·${upper:x}·${::-x} 같은 끼워 넣기를 풀어 낸 뒤 찾는 구조입니다. 문자열로만 검사하며 실행하지 않습니다. 수준(minLevel)은 이 연습의 학습 기준입니다.",
+  "patterns": [
+    {
+      "id": "CVE-2021-44228.jndi_lookup",
+      "name": "요청 머리글·인자 속 원격 조회 구문",
+      "condition": {
+        "mitre": "T1190",
+        "lookupRegex": "\\$\\{jndi:(ldaps?|rmi|dns|iiop|corba|nds|nis|https?)://",
+        "fields": ["url", "useragent"],
+        "minLevel": 10
+      },
+      "evidence": "CVE-2021-44228(Log4Shell)·MITRE ATT&CK T1190: 로그에 남는 머리글·인자에 ${jndi:ldap://…} 같은 원격 조회 구문을 넣으면 취약한 Log4j가 바깥 서버의 코드를 불러와 실행합니다. 요청 한 건으로 성립하므로 반복 수를 요구하지 않습니다."
+    },
+    {
+      "id": "T1190.scanner_trace",
+      "name": "알려진 취약점 점검 도구 흔적",
+      "condition": {
+        "mitre": "T1190",
+        "textRegex": "취약점 점검 흔적",
+        "userAgentRegex": "nuclei|zgrab|masscan|log4j-?scan|jndi-?scan|interactsh",
+        "minLevel": 10
+      },
+      "evidence": "MITRE ATT&CK T1190(공개 앱 악용) 준비 단계: 공개 취약점을 자동으로 찔러 보는 점검 도구가 남기는 이름·표식입니다. 흔적만으로는 알림, 원격 조회 구문과 함께면 차단 근거를 더합니다."
+    }
+  ],
+  "notBlocked": [
+    { "case": "검색어·문서에 CVE-2021-44228, jndi, 라이브러리 이름이 글자로만 있음", "action": "alert", "why": "취약점 이름을 공부하거나 찾아보는 정상 행동일 수 있고, 원격 조회 구문(${jndi:…://)이 없으면 악용이 성립하지 않습니다." },
+    { "case": "중괄호 한 개·잘린 조회 형태·점검 도구와 비슷한 수업용 프로그램 이름", "action": "alert", "why": "완전한 구문이 아니어서 막을 근거가 부족합니다. 사람이 확인할 대상입니다." },
+    { "case": "T1190 태그가 없는 화면 열기·로그인·조회·로그아웃", "action": "record", "why": "공격 신호가 없는 정상 이벤트입니다." }
+  ]
+}

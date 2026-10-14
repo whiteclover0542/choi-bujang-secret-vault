@@ -12,13 +12,14 @@
 | 5 | 자료 요청을 서버 한곳으로 | ✅ | `f13b7ec`, `71e41d3` | [stage-5.md](stage-5.md) |
 | 보너스 XDR-01 | 무차별 로그인 탐지 | ✅ (제출·결과 확인) | `06a6e2f`, `60cdc61` | [bonus-xdr-01.md](bonus-xdr-01.md) |
 | 보너스 XDR-02 | 웹 주입 탐지 | ✅ (제출·결과 확인) | `67b0e00` | [bonus-xdr-02.md](bonus-xdr-02.md) |
+| 보너스 XDR-03 | 알려진 취약점 악용 탐지 | 🔄 (저장점 전) | — | [bonus-xdr-03.md](bonus-xdr-03.md) |
 | 6 | 등록한 기기만 자료실에 | ✅ (제출 완료) | `401d269` | [stage-6.md](stage-6.md) |
 | 7 | 평소와 다른 접속은 다시 확인 | ✅ (제출 완료) | `d6f54b9` | [stage-7.md](stage-7.md) |
 | 8 | 자료마다 갈 수 있는 구역 | ✅ (재제출 완료) | `547f1c8`, `c05eb7a` | [stage-8.md](stage-8.md) |
 | 9 | 도플갱어를 찾고 권한을 거둠 | ✅ (제출 완료) | `2bb98be` | [stage-9.md](stage-9.md) |
 | 10 | 백업에서 자료실을 되살림 | ✅ (제출 완료) | `c791ba5` | [stage-10.md](stage-10.md) |
 | 11 | 나만의 접속 앱 완성 | ✅ (재제출 완료) | `2987c1f`, `5e9b39c` | [stage-11.md](stage-11.md) |
-| 12 | 탈환 작전실 완성 | 🔄 (재제출 준비) | `afa2207`, `6404afd` | [stage-12.md](stage-12.md) |
+| 12 | 탈환 작전실 완성 | ✅ (제출 완료) | `afa2207`, `3b59a71` | [stage-12.md](stage-12.md) |
 
 표시: ✅ 완료 · 🔄 진행 중 · ⬜ 미완료
 
@@ -91,6 +92,11 @@
 
 - 설치형 웹앱(manifest·아이콘·오프라인 안내)과 기기 승인 흐름(HttpOnly 쿠키 세션·서버 발급 기기 ID, pending→SQL 승인, 미승인 기기는 자료 API 403)을 만듦. 세부는 [stage-11.md](stage-11.md).
 
-## 12단계 — 탈환 작전실 완성 (진행 중)
+## 12단계 — 탈환 작전실 완성
 
 - 탈환 작전실(`/ops.html`, `GET /api/ops/summary`, 실측/미실행 구분), 1~12단계 실측표 스크립트, README 운영 안내·출처. 세부는 [stage-12.md](stage-12.md).
+
+## 보너스 XDR-03 — 알려진 취약점 악용 탐지 (진행 중)
+
+- `xdr/known-cve/`: 경보 읽기, CVE-2021-44228 원격 조회 구문·점검 도구 흔적 패턴 2개, import 없는 `decide`, XDR-01 `respond` 재사용.
+- 로컬 결과: block 8 · alert 8 · record 8 (24건), 정상 이벤트 block 0건.
