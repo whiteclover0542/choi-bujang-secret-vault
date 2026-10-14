@@ -1,0 +1,44 @@
+{
+  "schema": "aleph.xdr.patterns.v1",
+  "moduleKey": "privilege",
+  "note": "경보 태그(rule.mitre)가 T1068 또는 T1078인 경보만 봅니다. 신호는 그룹(data.group)·설명(rule.description)·경보 시각(timestamp, 경보에 적힌 현지 시각)에서 찾고, 수준(minLevel)은 이 연습의 학습 기준입니다.",
+  "patterns": [
+    {
+      "id": "T1078.admin_group_add",
+      "name": "평범한 계정의 관리자 그룹 추가",
+      "condition": {
+        "mitre": ["T1078", "T1068"],
+        "groupRegex": "^(administrators|domain admins|enterprise admins)$",
+        "textRegex": "관리자 그룹에 (추가|들어|다시)|관리자로 들어|관리자가 된",
+        "minLevel": 10
+      },
+      "evidence": "MITRE ATT&CK T1078(정상 계정 도용)·T1098.007(그룹 추가): 훔친 평범한 계정을 관리자 그룹에 넣어 권한을 얻습니다. 미드나이트 블리자드도 장악한 계정에 높은 권한을 붙여 메일함까지 넓혔습니다."
+    },
+    {
+      "id": "T1068.unfamiliar_admin_command",
+      "name": "처음 보는 관리자 명령·권한 전환",
+      "condition": {
+        "mitre": ["T1068", "T1078"],
+        "textRegex": "관리자 명령을 실행|권한 명령을 실행|명령 실행이 같이|관리자 권한으로 바뀌|다른 계정의 권한",
+        "minLevel": 10
+      },
+      "evidence": "MITRE ATT&CK T1068(권한 상승 악용): 권한을 얻은 직후 평소 쓰지 않던 관리자 명령을 실행하거나 세션을 관리자 권한으로 바꿉니다."
+    },
+    {
+      "id": "T1078.off_hours_privilege",
+      "name": "업무 시간 밖·처음 보는 주소의 권한 사용",
+      "condition": {
+        "mitre": ["T1068", "T1078"],
+        "textRegex": "수업 시간 밖|업무처럼 보이지 않는 시각|처음 보는 주소|주소는 처음",
+        "workHours": { "start": 8, "end": 20 },
+        "minLevel": 10
+      },
+      "evidence": "MITRE ATT&CK T1078(정상 계정 도용): 도용한 계정은 주인이 쓰지 않는 시각·주소에서 쓰입니다. 시간·주소가 평소와 다르면 권한 사용의 확신을 더합니다."
+    }
+  ],
+  "notBlocked": [
+    { "case": "관리자가 아닌 과제·수업 그룹 추가, 새 로컬 그룹(수준 5~8)", "action": "alert", "why": "권한이 오르지 않았을 수 있어 막을 근거가 부족합니다. 사람이 확인할 대상입니다." },
+    { "case": "수업 중 권한 상승 창 취소·평소 주소의 관리자 명령 1건·실패한 명령", "action": "alert", "why": "정상 관리 작업일 수 있어 알림만 남깁니다." },
+    { "case": "로그인·로그아웃·그룹 소속 읽기·수업용 관리 계정의 평소 로그인(태그 없음)", "action": "record", "why": "권한 변경이 없는 정상 이벤트입니다." }
+  ]
+}

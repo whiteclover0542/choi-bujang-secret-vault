@@ -87,7 +87,7 @@
 
 ## 보너스 xdr (로컬 모의 시험, 심판 판정 아님)
 
-네 모듈 모두 `read-alerts.mjs`(경보에서 필요한 필드만), `patterns.json`, `decide.mjs`(block·alert·record), `respond.mjs`(`xdr/blocklist.json` 1시간 만료, `xdr/alerts.log`)로 구성됩니다. 판정기 운영 경로와는 연결하지 않았고, Jev는 연결 정보가 없어 alert로 처리합니다.
+다섯 모듈 모두 `read-alerts.mjs`(경보에서 필요한 필드만), `patterns.json`, `decide.mjs`(block·alert·record), `respond.mjs`(`xdr/blocklist.json` 1시간 만료, `xdr/alerts.log`)로 구성됩니다. 판정기 운영 경로와는 연결하지 않았고, Jev는 연결 정보가 없어 alert로 처리합니다.
 
 | 모듈 | 탐지 대상 | 실행 |
 |---|---|---|
@@ -95,5 +95,6 @@
 | `web-injection` | T1190 SQL·스크립트 태그·경로 거슬러 올라가기·명령 구분자 (구조+5회 이상+수준 10 이상) | `npm run xdr:run -- web-injection` |
 | `known-cve` | CVE-2021-44228 원격 조회 구문+수준 10 이상은 block, 그 외 alert·record | `npm run xdr:run -- known-cve` |
 | `persistence` | T1543 서명 없는 서비스·T1053 처음 보는 예약 작업·시작 폴더+수준 10 이상은 block, 그 외 alert·record | `npm run xdr:run -- persistence` |
+| `privilege` | T1078 관리자 그룹 추가·T1068 처음 보는 관리자 명령·업무 시간 밖 권한 사용+수준 10 이상은 block, 그 외 alert·record | `npm run xdr:run -- privilege` |
 
 차단·알림은 `node xdr/<모듈>/respond.mjs`, 시험은 `node --test test/xdr-*.test.mjs`입니다.

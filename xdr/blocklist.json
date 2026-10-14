@@ -12,7 +12,7 @@
         "wi-01",
         "wi-02"
       ],
-      "expiresAt": "2026-10-14T01:19:07.256Z",
+      "expiresAt": "2026-10-14T01:23:55.005Z",
       "reason": "패턴: CVE-2021-44228.jndi_lookup 요청 머리글·인자 속 원격 조회 구문"
     },
     {
@@ -21,7 +21,7 @@
       "alertIds": [
         "kc-03"
       ],
-      "expiresAt": "2026-10-14T01:19:07.256Z",
+      "expiresAt": "2026-10-14T01:23:55.005Z",
       "reason": "패턴: CVE-2021-44228.jndi_lookup 요청 머리글·인자 속 원격 조회 구문"
     },
     {
@@ -30,7 +30,7 @@
       "alertIds": [
         "kc-04"
       ],
-      "expiresAt": "2026-10-14T01:19:07.256Z",
+      "expiresAt": "2026-10-14T01:23:55.005Z",
       "reason": "패턴: CVE-2021-44228.jndi_lookup 요청 머리글·인자 속 원격 조회 구문"
     },
     {
@@ -39,7 +39,7 @@
       "alertIds": [
         "kc-05"
       ],
-      "expiresAt": "2026-10-14T01:19:07.256Z",
+      "expiresAt": "2026-10-14T01:23:55.005Z",
       "reason": "패턴: CVE-2021-44228.jndi_lookup 요청 머리글·인자 속 원격 조회 구문, T1190.scanner_trace 알려진 취약점 점검 도구 흔적"
     },
     {
@@ -48,7 +48,7 @@
       "alertIds": [
         "kc-06"
       ],
-      "expiresAt": "2026-10-14T01:19:07.256Z",
+      "expiresAt": "2026-10-14T01:23:55.005Z",
       "reason": "패턴: CVE-2021-44228.jndi_lookup 요청 머리글·인자 속 원격 조회 구문"
     },
     {
@@ -57,7 +57,7 @@
       "alertIds": [
         "kc-07"
       ],
-      "expiresAt": "2026-10-14T01:19:07.256Z",
+      "expiresAt": "2026-10-14T01:23:55.005Z",
       "reason": "패턴: CVE-2021-44228.jndi_lookup 요청 머리글·인자 속 원격 조회 구문"
     },
     {
@@ -66,7 +66,7 @@
       "alertIds": [
         "kc-08"
       ],
-      "expiresAt": "2026-10-14T01:19:07.256Z",
+      "expiresAt": "2026-10-14T01:23:55.005Z",
       "reason": "패턴: CVE-2021-44228.jndi_lookup 요청 머리글·인자 속 원격 조회 구문"
     },
     {
@@ -75,7 +75,7 @@
       "alertIds": [
         "bf-03"
       ],
-      "expiresAt": "2026-10-14T01:19:07.042Z",
+      "expiresAt": "2026-10-14T01:23:54.793Z",
       "reason": "패턴: T1110.001 같은 주소 로그인 실패 연속, T1110.003 여러 계정에 같은 비밀번호 대입"
     },
     {
@@ -84,7 +84,7 @@
       "alertIds": [
         "bf-04"
       ],
-      "expiresAt": "2026-10-14T01:19:07.042Z",
+      "expiresAt": "2026-10-14T01:23:54.793Z",
       "reason": "패턴: T1110.001 같은 주소 로그인 실패 연속"
     },
     {
@@ -93,7 +93,7 @@
       "alertIds": [
         "bf-05"
       ],
-      "expiresAt": "2026-10-14T01:19:07.042Z",
+      "expiresAt": "2026-10-14T01:23:54.793Z",
       "reason": "패턴: T1110.003 여러 계정에 같은 비밀번호 대입"
     },
     {
@@ -102,7 +102,7 @@
       "alertIds": [
         "bf-06"
       ],
-      "expiresAt": "2026-10-14T01:19:07.042Z",
+      "expiresAt": "2026-10-14T01:23:54.793Z",
       "reason": "패턴: T1110.001 같은 주소 로그인 실패 연속"
     },
     {
@@ -111,7 +111,7 @@
       "alertIds": [
         "bf-07"
       ],
-      "expiresAt": "2026-10-14T01:19:07.042Z",
+      "expiresAt": "2026-10-14T01:23:54.793Z",
       "reason": "패턴: T1110.001 같은 주소 로그인 실패 연속"
     },
     {
@@ -120,7 +120,7 @@
       "alertIds": [
         "bf-08"
       ],
-      "expiresAt": "2026-10-14T01:19:07.042Z",
+      "expiresAt": "2026-10-14T01:23:54.793Z",
       "reason": "패턴: T1110.001 같은 주소 로그인 실패 연속"
     },
     {
@@ -129,7 +129,7 @@
       "alertIds": [
         "bf-09"
       ],
-      "expiresAt": "2026-10-14T01:19:07.042Z",
+      "expiresAt": "2026-10-14T01:23:54.793Z",
       "reason": "패턴: T1110.003 여러 계정에 같은 비밀번호 대입"
     },
     {
@@ -138,7 +138,7 @@
       "alertIds": [
         "bf-10"
       ],
-      "expiresAt": "2026-10-14T01:19:07.042Z",
+      "expiresAt": "2026-10-14T01:23:54.793Z",
       "reason": "패턴: T1110.001 같은 주소 로그인 실패 연속"
     },
     {
@@ -147,7 +147,7 @@
       "alertIds": [
         "wi-03"
       ],
-      "expiresAt": "2026-10-14T01:19:07.144Z",
+      "expiresAt": "2026-10-14T01:23:54.907Z",
       "reason": "패턴: T1190.path 경로 거슬러 올라가기 반복"
     },
     {
@@ -156,7 +156,7 @@
       "alertIds": [
         "wi-04"
       ],
-      "expiresAt": "2026-10-14T01:19:07.144Z",
+      "expiresAt": "2026-10-14T01:23:54.907Z",
       "reason": "패턴: T1190.sql SQL 구문 주입 반복"
     },
     {
@@ -165,7 +165,7 @@
       "alertIds": [
         "wi-05"
       ],
-      "expiresAt": "2026-10-14T01:19:07.144Z",
+      "expiresAt": "2026-10-14T01:23:54.907Z",
       "reason": "패턴: T1190.sql SQL 구문 주입 반복, T1190.script 스크립트 태그 주입 반복"
     },
     {
@@ -174,7 +174,7 @@
       "alertIds": [
         "wi-06"
       ],
-      "expiresAt": "2026-10-14T01:19:07.144Z",
+      "expiresAt": "2026-10-14T01:23:54.907Z",
       "reason": "패턴: T1190.cmd 명령 구분자 주입 반복"
     },
     {
@@ -183,7 +183,7 @@
       "alertIds": [
         "wi-07"
       ],
-      "expiresAt": "2026-10-14T01:19:07.144Z",
+      "expiresAt": "2026-10-14T01:23:54.907Z",
       "reason": "패턴: T1190.path 경로 거슬러 올라가기 반복"
     },
     {
@@ -192,7 +192,7 @@
       "alertIds": [
         "wi-08"
       ],
-      "expiresAt": "2026-10-14T01:19:07.144Z",
+      "expiresAt": "2026-10-14T01:23:54.907Z",
       "reason": "패턴: T1190.sql SQL 구문 주입 반복"
     },
     {
@@ -202,7 +202,7 @@
         "ps-01",
         "ps-02"
       ],
-      "expiresAt": "2026-10-14T01:19:06.934Z",
+      "expiresAt": "2026-10-14T01:23:55.095Z",
       "reason": "패턴: T1053.unfamiliar_task 처음 보는 예약 작업"
     },
     {
@@ -211,7 +211,7 @@
       "alertIds": [
         "ps-03"
       ],
-      "expiresAt": "2026-10-14T01:19:06.934Z",
+      "expiresAt": "2026-10-14T01:23:55.095Z",
       "reason": "패턴: T1543.unsigned_service 서명 없는 새 서비스·평소 목록에 없는 서비스, T1547.001.startup_folder 시작 폴더 변경"
     },
     {
@@ -220,7 +220,7 @@
       "alertIds": [
         "ps-04"
       ],
-      "expiresAt": "2026-10-14T01:19:06.934Z",
+      "expiresAt": "2026-10-14T01:23:55.095Z",
       "reason": "패턴: T1543.unsigned_service 서명 없는 새 서비스·평소 목록에 없는 서비스"
     },
     {
@@ -229,7 +229,7 @@
       "alertIds": [
         "ps-05"
       ],
-      "expiresAt": "2026-10-14T01:19:06.934Z",
+      "expiresAt": "2026-10-14T01:23:55.095Z",
       "reason": "패턴: T1053.unfamiliar_task 처음 보는 예약 작업"
     },
     {
@@ -238,7 +238,7 @@
       "alertIds": [
         "ps-06"
       ],
-      "expiresAt": "2026-10-14T01:19:06.934Z",
+      "expiresAt": "2026-10-14T01:23:55.095Z",
       "reason": "패턴: T1543.unsigned_service 서명 없는 새 서비스·평소 목록에 없는 서비스"
     },
     {
@@ -247,7 +247,7 @@
       "alertIds": [
         "ps-07"
       ],
-      "expiresAt": "2026-10-14T01:19:06.934Z",
+      "expiresAt": "2026-10-14T01:23:55.095Z",
       "reason": "패턴: T1543.unsigned_service 서명 없는 새 서비스·평소 목록에 없는 서비스, T1053.unfamiliar_task 처음 보는 예약 작업, T1547.001.startup_folder 시작 폴더 변경"
     },
     {
@@ -256,8 +256,81 @@
       "alertIds": [
         "ps-08"
       ],
-      "expiresAt": "2026-10-14T01:19:06.934Z",
+      "expiresAt": "2026-10-14T01:23:55.095Z",
       "reason": "패턴: T1543.unsigned_service 서명 없는 새 서비스·평소 목록에 없는 서비스"
+    },
+    {
+      "srcip": "203.0.113.11",
+      "action": "deny",
+      "alertIds": [
+        "pv-01",
+        "pv-02"
+      ],
+      "expiresAt": "2026-10-14T01:23:54.666Z",
+      "reason": "패턴: T1078.admin_group_add 평범한 계정의 관리자 그룹 추가, T1068.unfamiliar_admin_command 처음 보는 관리자 명령·권한 전환"
+    },
+    {
+      "srcip": "198.51.100.11",
+      "action": "deny",
+      "alertIds": [
+        "pv-03"
+      ],
+      "expiresAt": "2026-10-14T01:23:54.666Z",
+      "reason": "패턴: T1068.unfamiliar_admin_command 처음 보는 관리자 명령·권한 전환, T1078.off_hours_privilege 업무 시간 밖·처음 보는 주소의 권한 사용"
+    },
+    {
+      "srcip": "192.0.2.11",
+      "action": "deny",
+      "alertIds": [
+        "pv-04"
+      ],
+      "expiresAt": "2026-10-14T01:23:54.666Z",
+      "reason": "패턴: T1078.admin_group_add 평범한 계정의 관리자 그룹 추가, T1068.unfamiliar_admin_command 처음 보는 관리자 명령·권한 전환"
+    },
+    {
+      "srcip": "203.0.113.17",
+      "action": "deny",
+      "alertIds": [
+        "pv-05"
+      ],
+      "expiresAt": "2026-10-14T01:23:54.666Z",
+      "reason": "패턴: T1078.admin_group_add 평범한 계정의 관리자 그룹 추가"
+    },
+    {
+      "srcip": "198.51.100.17",
+      "action": "deny",
+      "alertIds": [
+        "pv-06"
+      ],
+      "expiresAt": "2026-10-14T01:23:54.666Z",
+      "reason": "패턴: T1068.unfamiliar_admin_command 처음 보는 관리자 명령·권한 전환, T1078.off_hours_privilege 업무 시간 밖·처음 보는 주소의 권한 사용"
+    },
+    {
+      "srcip": "192.0.2.17",
+      "action": "deny",
+      "alertIds": [
+        "pv-07"
+      ],
+      "expiresAt": "2026-10-14T01:23:54.666Z",
+      "reason": "패턴: T1078.admin_group_add 평범한 계정의 관리자 그룹 추가, T1068.unfamiliar_admin_command 처음 보는 관리자 명령·권한 전환, T1078.off_hours_privilege 업무 시간 밖·처음 보는 주소의 권한 사용"
+    },
+    {
+      "srcip": "203.0.113.27",
+      "action": "deny",
+      "alertIds": [
+        "pv-08"
+      ],
+      "expiresAt": "2026-10-14T01:23:54.666Z",
+      "reason": "패턴: T1068.unfamiliar_admin_command 처음 보는 관리자 명령·권한 전환"
+    },
+    {
+      "srcip": "198.51.100.27",
+      "action": "deny",
+      "alertIds": [
+        "pv-09"
+      ],
+      "expiresAt": "2026-10-14T01:23:54.666Z",
+      "reason": "패턴: T1078.admin_group_add 평범한 계정의 관리자 그룹 추가"
     }
   ]
 }
