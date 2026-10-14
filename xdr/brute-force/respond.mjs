@@ -11,32 +11,35 @@ const TTL_MS = 60 * 60 * 1000;
 
 const readJson = (url, fallback) => readFile(url, 'utf8').then(JSON.parse, () => fallback);
 
-export async function isBlocked(ip, now = Date.now()) {
+// field: 막는 기준 필드. 기본은 출발 주소(srcip), 자료 빼돌리기(XDR-06)는 목적지(dstip).
+export async function isBlocked(ip, now = Date.now(), field = 'srcip') {
+  if (!ip) return null;
   const { rules = [] } = await readJson(BLOCKLIST, {});
-  return rules.find((r) => r.srcip === ip && Date.parse(r.expiresAt) > now) ?? null;
+  return rules.find((r) => r[field] === ip && Date.parse(r.expiresAt) > now) ?? null;
 }
 
-export async function respond(alerts, now = Date.now(), decideFn = decide) {
+export async function respond(alerts, now = Date.now(), decideFn = decide, field = 'srcip') {
   const decided = [];
   for (const a of alerts) decided.push({ a, d: await decideFn(a) });
 
   // 같은 주소에서 정상(record) 이벤트가 나온 적 있으면 정상 사용자일 수 있어 막지 않고 알림으로 낮춥니다.
-  const normalIps = new Set(decided.filter(({ d }) => d.action === 'record').map(({ a }) => a.data?.srcip));
+  const normalIps = new Set(decided.filter(({ d }) => d.action === 'record').map(({ a }) => a.data?.[field]));
   const { rules: old = [] } = await readJson(BLOCKLIST, {});
-  const rules = new Map(old.filter((r) => Date.parse(r.expiresAt) > now).map((r) => [r.srcip, r]));
+  const keyOf = (r) => (r.dstip ? `dstip:${r.dstip}` : `srcip:${r.srcip}`);
+  const rules = new Map(old.filter((r) => Date.parse(r.expiresAt) > now).map((r) => [keyOf(r), r]));
   const logged = new Set((await readFile(ALERTS_LOG, 'utf8').catch(() => '')).split('\n').map((l) => l.split('\t')[1]));
   const lines = [];
 
   for (const { a, d } of decided) {
-    const ip = a.data?.srcip;
+    const ip = a.data?.[field];
     let action = d.action;
     if (action === 'block' && (!ip || normalIps.has(ip) || d.confidence < 0.85)) action = 'alert';
     if (action === 'block') {
-      const r = rules.get(ip) ?? { srcip: ip, action: 'deny', alertIds: [] };
+      const r = rules.get(`${field}:${ip}`) ?? { [field]: ip, action: 'deny', alertIds: [] };
       if (!r.alertIds.includes(a.id)) r.alertIds.push(a.id);
       r.expiresAt = new Date(now + TTL_MS).toISOString();
       r.reason = d.reason;
-      rules.set(ip, r);
+      rules.set(`${field}:${ip}`, r);
     }
     if (action !== 'record' && !logged.has(a.id)) {
       lines.push([new Date(now).toISOString(), a.id, action, ip, a.data?.srcuser ?? '', d.confidence, d.reason].join('\t'));
@@ -49,15 +52,15 @@ export async function respond(alerts, now = Date.now(), decideFn = decide) {
 }
 
 // 시험 경보를 다시 흘려 봅니다: block 주소만 막히고 나머지 주소는 통과해야 합니다.
-export async function replay(fixture, decideFn = decide) {
+export async function replay(fixture, decideFn = decide, field = 'srcip') {
   const { alerts } = JSON.parse(await readFile(fixture, 'utf8'));
-  const decided = await respond(alerts, Date.now(), decideFn);
+  const decided = await respond(alerts, Date.now(), decideFn, field);
   let bad = 0;
   for (const { a, d } of decided) {
-    const blocked = Boolean(await isBlocked(a.data?.srcip));
+    const blocked = Boolean(await isBlocked(a.data?.[field], Date.now(), field));
     const ok = blocked === (d.action === 'block');
     if (!ok) bad += 1;
-    console.log(`${ok ? '맞음' : '틀림'}\t${a.id}\t${a.data?.srcip}\t${d.action}\t${blocked ? '차단' : '통과'}`);
+    console.log(`${ok ? '맞음' : '틀림'}\t${a.id}\t${a.data?.[field]}\t${d.action}\t${blocked ? '차단' : '통과'}`);
   }
   console.log(bad ? `틀린 경보 ${bad}건` : '명확한 공격 주소만 막히고 나머지는 통과합니다.');
   if (bad) process.exitCode = 1;

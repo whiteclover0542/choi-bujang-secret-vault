@@ -21,7 +21,8 @@
 | 12 | 탈환 작전실 완성 | ✅ (제출 완료) | `afa2207`, `3b59a71` | [stage-12.md](stage-12.md) |
 | 보너스 XDR-03 | 알려진 취약점 악용 탐지 | ✅ (제출 완료) | `eafc2f9` | [bonus-xdr-03.md](bonus-xdr-03.md) |
 | 보너스 XDR-04 | 몰래 심어진 프로그램 탐지 | ✅ (제출 완료) | `0fdead3` | [bonus-xdr-04.md](bonus-xdr-04.md) |
-| 보너스 XDR-05 | 권한 가로채기 탐지 | 🔄 (저장점 대기) | — | [bonus-xdr-05.md](bonus-xdr-05.md) |
+| 보너스 XDR-05 | 권한 가로채기 탐지 | ✅ (제출 완료) | `6e68694` | [bonus-xdr-05.md](bonus-xdr-05.md) |
+| 보너스 XDR-06 | 자료 빼돌리기 탐지 | 🔄 (저장점 대기) | — | [bonus-xdr-06.md](bonus-xdr-06.md) |
 
 표시: ✅ 완료 · 🔄 진행 중 · ⬜ 미완료
 
@@ -108,7 +109,13 @@
 - `xdr/persistence/`: 경보 읽기, T1543 서명 없는 서비스·T1053 처음 보는 예약 작업·T1547.001 시작 폴더 패턴 3개, import 없는 `decide`, XDR-01 `respond` 재사용(출발 주소 단위 격리).
 - 로컬 결과: block 8 · alert 8 · record 8 (24건), 정상 이벤트 block 0건.
 
-## 보너스 XDR-05 — 권한 가로채기 탐지 (진행 중)
+## 보너스 XDR-05 — 권한 가로채기 탐지
 
 - `xdr/privilege/`: 경보 읽기, T1078 관리자 그룹 추가·T1068 처음 보는 관리자 명령·업무 시간 밖/처음 보는 주소 권한 사용 패턴 3개, import 없는 `decide`, XDR-01 `respond` 재사용(출발 주소 단위로 세션 회수).
 - 로컬 결과: block 9 · alert 8 · record 9 (26건), 정상 이벤트 block 0건.
+
+## 보너스 XDR-06 — 자료 빼돌리기 탐지 (진행 중)
+
+- `xdr/exfiltration/`: 경보 읽기, T1048 처음 보는 목적지 대용량·T1041 명령 통로 반복·업무 시간 밖 압축 파일 패턴 3개, import 없는 `decide`(차단은 50MB↑ + 수준 10↑), 목적지(dstip) 단위 차단.
+- 공용 `xdr/brute-force/respond.mjs`에 막는 기준 필드 인자(기본 `srcip`) 추가, 기준 값이 없는 경보가 다른 규칙에 걸리던 조회 수정.
+- 로컬 결과: block 10 · alert 10 · record 10 (30건), 정상 이벤트 block 0건.

@@ -1,0 +1,46 @@
+{
+  "schema": "aleph.xdr.patterns.v1",
+  "moduleKey": "exfiltration",
+  "note": "경보 태그(rule.mitre)가 T1041 또는 T1048인 경보만 봅니다. 신호는 전송량(data.bytes)·파일 수(data.files)·반복 수(data.count)·설명(rule.description)·경보 시각(현지 시각)에서 찾습니다. 차단은 대용량(minBytes) 전송이면서 수준 10 이상일 때만 하고, 막는 대상은 목적지(data.dstip)입니다. 기준 값은 이 연습의 학습 기준입니다.",
+  "patterns": [
+    {
+      "id": "T1048.large_to_new_destination",
+      "name": "처음 보는 목적지로 대용량 전송",
+      "condition": {
+        "mitre": ["T1048", "T1041"],
+        "minBytes": 50000000,
+        "textRegex": "처음 보는|외부 주소|평소에 쓰지 않던",
+        "minLevel": 10
+      },
+      "evidence": "MITRE ATT&CK T1048(다른 프로토콜로 유출): 평소 쓰지 않는 목적지·포트로 큰 자료를 내보냅니다. 카드 3사 유출도 대량 고객정보가 바깥 저장 매체로 한꺼번에 빠져나간 사고였습니다."
+    },
+    {
+      "id": "T1041.c2_channel_repeat",
+      "name": "명령 통로로 반복·대량 반출",
+      "condition": {
+        "mitre": ["T1041", "T1048"],
+        "minCount": 5,
+        "minFiles": 50,
+        "textRegex": "명령 통로|반복|연속|전체가",
+        "minLevel": 10
+      },
+      "evidence": "MITRE ATT&CK T1041(명령 통로로 유출): 이미 열린 공격자 통로로 자료를 여러 번 나눠 보내거나 한꺼번에 많은 파일을 내보냅니다."
+    },
+    {
+      "id": "T1048.off_hours_archive",
+      "name": "업무 시간 밖 압축 파일 반출",
+      "condition": {
+        "mitre": ["T1048", "T1041"],
+        "textRegex": "(수업|업무) 시간 밖|압축 파일[^.]*(나갔|올라갔)",
+        "workHours": { "start": 8, "end": 20 },
+        "minLevel": 10
+      },
+      "evidence": "MITRE ATT&CK T1560(수집 자료 압축)→T1048: 유출 전에 자료를 압축해 묶고, 사람이 보지 않는 시간에 내보냅니다."
+    }
+  ],
+  "notBlocked": [
+    { "case": "처음 보는 주소로 작은 파일·실패한 전송·평소보다 한 번 많은 전송(15MB 이하, 수준 5~8)", "action": "alert", "why": "대용량이 아니어서 유출로 단정할 근거가 부족합니다. 사람이 확인할 대상입니다." },
+    { "case": "압축 파일을 만들기만 했거나 수업 끝 백업처럼 보이는 1건", "action": "alert", "why": "정상 업무일 수 있어 알림만 남깁니다." },
+    { "case": "메모·공지 읽기, 수업 자료 주소로 작은 동기화, 화면 새로고침(수준 3 이하)", "action": "record", "why": "평소 목적지로 가는 작은 정상 전송입니다." }
+  ]
+}
