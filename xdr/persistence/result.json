@@ -1,0 +1,155 @@
+{
+  "schema": "aleph.xdr.result.v1",
+  "moduleKey": "persistence",
+  "decisions": [
+    {
+      "alertId": "ps-01",
+      "action": "block",
+      "confidence": 0.95,
+      "reason": "패턴: T1543.unsigned_service 서명 없는 새 서비스·평소 목록에 없는 서비스"
+    },
+    {
+      "alertId": "ps-02",
+      "action": "block",
+      "confidence": 0.95,
+      "reason": "패턴: T1053.unfamiliar_task 처음 보는 예약 작업"
+    },
+    {
+      "alertId": "ps-03",
+      "action": "block",
+      "confidence": 0.95,
+      "reason": "패턴: T1543.unsigned_service 서명 없는 새 서비스·평소 목록에 없는 서비스, T1547.001.startup_folder 시작 폴더 변경"
+    },
+    {
+      "alertId": "ps-04",
+      "action": "block",
+      "confidence": 0.9,
+      "reason": "패턴: T1543.unsigned_service 서명 없는 새 서비스·평소 목록에 없는 서비스"
+    },
+    {
+      "alertId": "ps-05",
+      "action": "block",
+      "confidence": 0.95,
+      "reason": "패턴: T1053.unfamiliar_task 처음 보는 예약 작업"
+    },
+    {
+      "alertId": "ps-06",
+      "action": "block",
+      "confidence": 0.95,
+      "reason": "패턴: T1543.unsigned_service 서명 없는 새 서비스·평소 목록에 없는 서비스"
+    },
+    {
+      "alertId": "ps-07",
+      "action": "block",
+      "confidence": 0.95,
+      "reason": "패턴: T1543.unsigned_service 서명 없는 새 서비스·평소 목록에 없는 서비스, T1053.unfamiliar_task 처음 보는 예약 작업, T1547.001.startup_folder 시작 폴더 변경"
+    },
+    {
+      "alertId": "ps-08",
+      "action": "block",
+      "confidence": 0.95,
+      "reason": "패턴: T1543.unsigned_service 서명 없는 새 서비스·평소 목록에 없는 서비스"
+    },
+    {
+      "alertId": "ps-09",
+      "action": "alert",
+      "confidence": 0.55,
+      "reason": "애매: 서비스·예약 작업 변경이지만 서명 없음·낯선 위치 신호 없음"
+    },
+    {
+      "alertId": "ps-10",
+      "action": "alert",
+      "confidence": 0.55,
+      "reason": "애매: 서비스·예약 작업 변경이지만 서명 없음·낯선 위치 신호 없음"
+    },
+    {
+      "alertId": "ps-11",
+      "action": "alert",
+      "confidence": 0.55,
+      "reason": "애매: 서비스·예약 작업 변경이지만 서명 없음·낯선 위치 신호 없음"
+    },
+    {
+      "alertId": "ps-12",
+      "action": "alert",
+      "confidence": 0.55,
+      "reason": "애매: 서비스·예약 작업 변경이지만 서명 없음·낯선 위치 신호 없음"
+    },
+    {
+      "alertId": "ps-13",
+      "action": "alert",
+      "confidence": 0.7,
+      "reason": "애매: T1543.unsigned_service 서명 없는 새 서비스·평소 목록에 없는 서비스 신호는 있으나 경보 수준 미달"
+    },
+    {
+      "alertId": "ps-14",
+      "action": "alert",
+      "confidence": 0.55,
+      "reason": "애매: 서비스·예약 작업 변경이지만 서명 없음·낯선 위치 신호 없음"
+    },
+    {
+      "alertId": "ps-15",
+      "action": "alert",
+      "confidence": 0.55,
+      "reason": "애매: 서비스·예약 작업 변경이지만 서명 없음·낯선 위치 신호 없음"
+    },
+    {
+      "alertId": "ps-16",
+      "action": "alert",
+      "confidence": 0.55,
+      "reason": "애매: 서비스·예약 작업 변경이지만 서명 없음·낯선 위치 신호 없음"
+    },
+    {
+      "alertId": "ps-17",
+      "action": "record",
+      "confidence": 0.1,
+      "reason": "패턴 없음: 지속 장치 신호가 없는 정상 이벤트"
+    },
+    {
+      "alertId": "ps-18",
+      "action": "record",
+      "confidence": 0.2,
+      "reason": "패턴 없음: 평소 목록의 서비스·예약 작업 이벤트"
+    },
+    {
+      "alertId": "ps-19",
+      "action": "record",
+      "confidence": 0.2,
+      "reason": "패턴 없음: 평소 목록의 서비스·예약 작업 이벤트"
+    },
+    {
+      "alertId": "ps-20",
+      "action": "record",
+      "confidence": 0.1,
+      "reason": "패턴 없음: 지속 장치 신호가 없는 정상 이벤트"
+    },
+    {
+      "alertId": "ps-21",
+      "action": "record",
+      "confidence": 0.1,
+      "reason": "패턴 없음: 지속 장치 신호가 없는 정상 이벤트"
+    },
+    {
+      "alertId": "ps-22",
+      "action": "record",
+      "confidence": 0.1,
+      "reason": "패턴 없음: 지속 장치 신호가 없는 정상 이벤트"
+    },
+    {
+      "alertId": "ps-23",
+      "action": "record",
+      "confidence": 0.2,
+      "reason": "패턴 없음: 평소 목록의 서비스·예약 작업 이벤트"
+    },
+    {
+      "alertId": "ps-24",
+      "action": "record",
+      "confidence": 0.1,
+      "reason": "패턴 없음: 지속 장치 신호가 없는 정상 이벤트"
+    }
+  ],
+  "counts": {
+    "block": 8,
+    "alert": 8,
+    "record": 8
+  }
+}
