@@ -13,9 +13,9 @@ export function createStudentView() {
         parent.appendChild(paragraph);
       };
       const device = (parent, item) => line(parent,
-        `기기: ${value(item?.label)} · ID: ${value(item?.id)} · 상태: ${deviceStates[item?.status] ?? '확인 불가'}`);
+        `기기: ${value(item?.label)} · ID: ${value(item?.id)} · 상태: ${deviceStates[item?.status] ?? '확인 불가'} (${value(item?.status)})`);
       const session = (parent, item) => line(parent,
-        `세션 ID: ${value(item?.id)} · 상태: ${sessionStates[item?.status] ?? '확인 불가'}`);
+        `세션 ID: ${value(item?.id)} · 상태: ${sessionStates[item?.status] ?? '확인 불가'} (${value(item?.status)})`);
 
       for (const [title, resource, render] of [
         ['현재 계정·기기·세션', me, (parent, data) => {
