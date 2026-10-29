@@ -99,3 +99,10 @@
 | `exfiltration` | T1048 처음 보는 목적지 대용량·T1041 명령 통로 반복·업무 시간 밖 압축 반출, 50MB 이상+수준 10 이상은 목적지 block | `npm run xdr:run -- exfiltration` |
 
 차단·알림은 `node xdr/<모듈>/respond.mjs`, 시험은 `node --test test/xdr-*.test.mjs`입니다.
+
+## 17단계: 이지스 AI 연결 상태 표시
+
+- `on-client/student/extension.mjs`는 연결 점검 상태·오류와 사건 설명 결과를 따로 표시합니다. 연결 점검만으로 사건 설명 성공을 표시하지 않습니다.
+- 다시 실행: `on-client` 폴더에서 `npm start`, 브라우저에서 `http://127.0.0.1:5189`를 엽니다. 문법 확인은 같은 폴더에서 `npm run check`입니다.
+- 실제 AI 연결은 담당자가 제공한 호스트 설정으로 실행해야 합니다. 2026-10-29 확인 시 공지의 설정 파일이 없어 설정 적용 실행은 하지 않았습니다. 사용자 화면에서는 점검 확인 불가와 연결 서버 미준비 안내가 확인됐으며 실제 모델 호출·공식 판정은 미확인입니다.
+- 루트 `aleph.config.json`의 step 12는 기존 방어전 설정이며 on-client의 17단계 진행과 별개입니다. 이번 작업에서 설정·judgeIssuer를 변경하지 않았습니다.
