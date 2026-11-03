@@ -275,7 +275,79 @@ export function createStudentView() {
       });
       return root;
     },
-    renderVulnerabilities() { return '학생 구현 대기: 정확한 설치 버전·OSV 출처·조회 시각·부분 결과·조회 실패를 구분하세요.'; },
+    renderVulnerabilities({ status, mode, data, error }) {
+      const root = document.createElement('section');
+      const element = (tag, text, parent = root) => {
+        const node = document.createElement(tag);
+        if (text != null) node.textContent = text;
+        parent.appendChild(node);
+        return node;
+      };
+      const modes = { demo: '예제 자료', disconnected: '연결 없음', unknown: '확인 불가' };
+      if (Object.hasOwn(modes, mode)) element('p', modes[mode]);
+      if (status === 'idle') {
+        element('p', '패키지 조회 전(idle)');
+        return root;
+      }
+      if (status === 'loading') {
+        element('p', '패키지 조회 중(loading)');
+        return root;
+      }
+      if (status === 'error') {
+        // 제공 UI가 전달한 안전한 안내만 사용하고 비밀 표기가 있는 원문은 표시하지 않습니다.
+        const message = typeof error?.message === 'string'
+          && !/Bearer\s|sk-|ghp_|eyJ|PRIVATE KEY/i.test(error.message)
+          ? error.message : '패키지 조회 결과를 확인할 수 없습니다';
+        element('p', `조회 실패: ${message}`);
+        element('p', '조회 실패는 취약점 없음이 아닙니다. 제공 화면에서 직접 다시 조회하세요.');
+        return root;
+      }
+      const scanLabels = {
+        complete: '모두 조회', partial: '일부 조회 실패', not_checked: '아직 조회 안 함',
+        not_configured: '조회 준비 미완료', unverifiable: 'lock 파일 확인 불가',
+      };
+      if (status !== 'ok' || !Object.hasOwn(scanLabels, data?.status) || !Array.isArray(data.packages)) {
+        element('p', '패키지 조회 결과 확인 불가. 취약점 없음으로 판단할 수 없습니다.');
+        return root;
+      }
+      element('p', `${scanLabels[data.status]}(${data.status})`);
+      if (data.status === 'not_configured') element('p', '조회 대상 프로젝트 설정이 필요합니다. 대상 경로와 허용 패키지는 운영자가 준비합니다.');
+      if (data.status === 'not_checked') element('p', '승인된 공개 조회 대상이 없어 조회하지 않았습니다. 취약점 없음이 아닙니다.');
+      if (data.status === 'unverifiable') element('p', '잠금 파일 또는 설치 목록을 확인할 수 없어 취약점 여부를 판단할 수 없습니다.');
+      for (const key of ['lockfileVersion', 'lockfileHash', 'checkedAt']) {
+        if (data[key] != null) element('p', `${key}: ${data[key]}`);
+      }
+      if (data.packages.length === 0) element('p', '표시할 패키지 조회 결과가 없습니다.');
+      else {
+        const table = element('table');
+        element('caption', '정확한 설치 버전별 OSV 조회 결과', table);
+        const header = element('tr', null, element('thead', null, table));
+        for (const title of ['패키지', '설치 버전', '조회 상태', '출처', '조회 시각', '취약점 ID · 수정 시각']) {
+          element('th', title, header).setAttribute('scope', 'col');
+        }
+        const body = element('tbody', null, table);
+        const packageLabels = { known_vulnerabilities: '알려진 항목 있음', none_found: '알려진 항목 없음(조회 범위 기준)', unverifiable: '조회 확인 불가' };
+        for (const pkg of data.packages) {
+          const row = element('tr', null, body);
+          row.setAttribute('data-student-package-name', pkg.name);
+          row.setAttribute('data-student-package-version', pkg.version);
+          element('td', pkg.name, row);
+          element('td', pkg.version, row);
+          const findings = Array.isArray(pkg.vulnerabilities) ? pkg.vulnerabilities : [];
+          const description = pkg.status === 'unverifiable' && findings.length > 0
+            ? '일부 확인·전체 조회 확인 불가' : packageLabels[pkg.status] ?? '조회 확인 불가';
+          element('td', `${description} (${pkg.status})`, row);
+          element('td', pkg.source, row);
+          element('td', pkg.checkedAt, row);
+          const cell = element('td', null, row);
+          for (const finding of findings) element('p', `${finding.id} — 수정 시각: ${finding.modified}`, cell);
+          if (findings.length === 0) element('p', pkg.status === 'none_found'
+            ? '조회 범위에서 알려진 항목이 없습니다.' : '표시할 취약점 ID가 없으며 조회 상태를 확인해야 합니다.', cell);
+        }
+      }
+      element('p', 'OSV는 알려진 취약점 데이터베이스입니다. 조회 범위에서 항목이 없더라도 패키지나 앱 전체의 안전을 보장하지 않습니다.');
+      return root;
+    },
     renderAiConnection({ status, mode, data, error, checkedAt }) {
       const root = document.createElement('section');
       const line = (text) => {
