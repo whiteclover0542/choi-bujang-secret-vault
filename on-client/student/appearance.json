@@ -1,0 +1,10 @@
+{
+  "schema": "alekov.student-appearance.v1",
+  "appName": "이지스",
+  "dashboardPreset": "student-first",
+  "palette": {
+    "accent": "#0e7490",
+    "background": "#f1f5f9",
+    "surface": "#ffffff"
+  }
+}

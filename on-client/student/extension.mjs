@@ -1,6 +1,193 @@
 // 이 파일은 학생이 같은 프로젝트에서 이어서 구현합니다.
 // 제공 UI를 받은 것만으로 단계 완료를 인정하지 않습니다.
-export function createStudentView() {
+export function createStudentView({ api, onChange } = {}) {
+  // PC 실측은 이 탭의 메모리에만 보관합니다. 제공 카드와 별도 조회이며 자동 실행하지 않습니다.
+  let pc = { status: 'idle' }, pcGeneration = 0, pcPending = false, dashboardHost = null;
+  let freshnessTimer = null;
+  const pcHistory = [];
+  const pcTime = (value) => new Date(value).toLocaleString('ko-KR', { timeZone: 'Asia/Seoul', hour12: false });
+  const finite = (value) => typeof value === 'number' && Number.isFinite(value) && value >= 0;
+  const percent = (value) => finite(value) && value <= 100;
+  const gib = (value) => `${(value / 1024 ** 3).toFixed(1)} GiB`;
+  const metricNames = { cpu: 'CPU', memory: '메모리', disk: '디스크 여유', firewall: 'Windows 방화벽' };
+  function pcMetric(key, metric) {
+    const missing = { value: '확인 불가', state: 'unknown', note: '응답의 값이나 단위를 확인할 수 없습니다.', percent: null };
+    if (metric?.state !== 'ok') {
+      return { ...missing, note: ({ permission_denied: '읽기 권한이 없습니다.', timeout: '조회 시간이 초과됐습니다.', unsupported: '지원하지 않는 항목입니다.' })[metric?.reason] ?? '이번 조회에서 값을 읽지 못했습니다.' };
+    }
+    if (key === 'cpu' && percent(metric.usagePercent)) return {
+      value: `${metric.usagePercent.toFixed(1)}%`, percent: metric.usagePercent,
+      state: metric.usagePercent >= 85 ? 'attention' : 'measured',
+      note: metric.usagePercent >= 85 ? '짧은 표본의 사용률이 높습니다. 실행 중인 앱을 확인하세요.' : '짧은 구간의 사용률입니다. 안전 판정이 아닙니다.',
+    };
+    if ((key === 'memory' || key === 'disk') && finite(metric.totalBytes) && metric.totalBytes > 0) {
+      const amount = key === 'memory' ? metric.usedBytes : metric.freeBytes;
+      if (!finite(amount) || amount > metric.totalBytes) return missing;
+      const ratio = amount / metric.totalBytes * 100;
+      const attention = key === 'memory' ? ratio >= 85 : ratio < 10;
+      return { value: `${ratio.toFixed(1)}%${key === 'disk' ? ' 여유' : ' 사용'}`, percent: key === 'memory' ? ratio : null,
+        state: attention ? 'attention' : 'measured', note: `${gib(amount)} / ${gib(metric.totalBytes)}${attention ? key === 'memory' ? ' · 사용량이 높습니다.' : ' · 남은 공간이 적습니다.' : ''}` };
+    }
+    if (key === 'firewall' && Array.isArray(metric.profiles) && metric.profiles.length === 3
+      && ['Domain', 'Private', 'Public'].every(name => metric.profiles.filter(p => p?.name === name && typeof p.enabled === 'boolean').length === 1)) {
+      const enabled = metric.profiles.filter(p => p.enabled).length;
+      return { value: `${enabled} / 3 켜짐`, percent: null, state: enabled === 3 ? 'measured' : 'attention',
+        note: metric.profiles.map(p => `${p.name}: ${p.enabled ? '켜짐' : '꺼짐'}`).join(' · ') };
+    }
+    return missing;
+  }
+  function rememberPc(status, note, metrics = null, measuredAt = null) {
+    pcHistory.push({ at: Date.now(), measuredAt, status, note, metrics });
+    if (pcHistory.length > 30) pcHistory.shift();
+  }
+  function updateDashboard() {
+    const focusKey = document.activeElement?.getAttribute?.('data-aegis-control');
+    if (dashboardHost?.isConnected) {
+      const old = dashboardHost;
+      old.replaceWith(drawDashboard());
+      if (focusKey) dashboardHost.querySelector(`[data-aegis-control="${focusKey}"]`)?.focus({ preventScroll: true });
+    } else if (typeof onChange === 'function') onChange();
+  }
+  async function readPc() {
+    if (pcPending) return;
+    const own = ++pcGeneration;
+    pcPending = true;
+    clearTimeout(freshnessTimer);
+    pc = { status: 'loading' };
+    updateDashboard();
+    try {
+      if (typeof api?.get !== 'function') throw Error('unsupported');
+      const result = await api.get('/api/pc/status');
+      if (own !== pcGeneration) return;
+      if (result?.ok !== true) throw Error(result?.error?.code === 'NOT_ALLOWED' ? 'unsupported' : 'failed');
+      const data = result.data;
+      const measured = typeof data?.measuredAt === 'string' && /(?:Z|[+-]\d{2}:\d{2})$/.test(data.measuredAt) ? Date.parse(data.measuredAt) : NaN;
+      if (data?.schema !== 'aleph.on.pc-status.v1' || data.source !== 'local-pc' || !Number.isFinite(measured)
+        || Math.abs(Date.now() - measured) > 60000) throw Error('unverified');
+      const metrics = Object.fromEntries(Object.keys(metricNames).map(key => [key, pcMetric(key, data.metrics?.[key])]));
+      const partial = Object.values(metrics).some(item => item.state === 'unknown');
+      pc = { status: 'ok', measuredAt: measured, metrics };
+      rememberPc(partial ? '부분 결과' : '실측 성공', partial ? '읽지 못한 항목이 있습니다.' : '네 항목의 실측값을 확인했습니다.', metrics, measured);
+      freshnessTimer = setTimeout(updateDashboard, Math.max(1, measured + 60001 - Date.now()));
+      freshnessTimer?.unref?.();
+    } catch (error) {
+      if (own !== pcGeneration) return;
+      const note = error.message === 'unsupported' ? '학생 PC 조회 API를 사용할 수 없습니다.'
+        : error.message === 'unverified' ? '실측 출처·시각을 확인할 수 없거나 60초 이상 지난 응답입니다.' : '이번 조회에 실패했습니다. 앱 실행 상태를 확인한 뒤 직접 다시 조회하세요.';
+      pc = { status: 'error', note };
+      rememberPc('조회 실패', note);
+    } finally {
+      pcPending = false;
+      updateDashboard();
+    }
+  }
+  function cancelPc() {
+    if (!pcPending || pc.status !== 'loading') return;
+    ++pcGeneration;
+    pc = { status: 'cancelled', note: '조회 화면을 취소했습니다. 늦은 응답은 표시하지 않습니다.' };
+    rememberPc('조회 취소', pc.note);
+    updateDashboard();
+  }
+  function drawDashboard() {
+    const root = document.createElement('section');
+    root.setAttribute('data-aegis-dashboard', 'local-pc');
+    dashboardHost = root;
+    const node = (tag, text, parent = root, className = '') => {
+      const el = document.createElement(tag);
+      if (text != null) el.textContent = text;
+      if (className) el.className = className;
+      parent.appendChild(el);
+      return el;
+    };
+    node('h3', '이지스 · 내 PC 실측 대시보드');
+    node('p', '학생이 추가한 실측 요약·추이·기록입니다. 아래 제공 기능과 별도로 조회합니다. 예시 값은 사용하지 않습니다.', root, 'muted');
+    const controls = node('div', null, root, 'row');
+    for (const [label, key, action, disabled] of [
+      ['PC 실측 조회', 'read', readPc, pcPending],
+      ['조회 화면 취소', 'cancel', cancelPc, !pcPending || pc.status !== 'loading'],
+    ]) {
+      const button = node('button', label, controls, 'btn');
+      button.type = 'button'; button.disabled = disabled;
+      button.setAttribute('data-aegis-control', key);
+      button.addEventListener('click', action);
+    }
+    const stale = pc.status === 'ok' && Date.now() - pc.measuredAt > 60000;
+    const current = pc.status === 'ok' && !stale;
+    const status = node('p', current ? `실측 시각: ${pcTime(pc.measuredAt)} (한국 시간)`
+      : stale ? '마지막 실측이 60초 이상 지났습니다. 현재 값은 확인 불가입니다. 직접 다시 조회하세요.'
+      : ({ idle: '조회 전 · 자동 조회하지 않습니다.', loading: '실측 조회 중 · 이전 값을 현재 카드에 표시하지 않습니다.' })[pc.status] ?? pc.note);
+    status.setAttribute('role', 'status');
+    const cards = node('div', null, root, 'row');
+    const stateText = { measured: '실측', attention: '주의', unknown: '확인 불가' };
+    for (const [key, title] of Object.entries(metricNames)) {
+      const card = node('article', null, cards, 'card');
+      card.setAttribute('data-aegis-metric', key);
+      node('h4', title, card);
+      const metric = current ? pc.metrics[key] : { value: '확인 불가', state: 'unknown', note: pc.status === 'idle' ? '아직 조회하지 않았습니다.' : '현재 조회 결과가 없습니다.' };
+      node('strong', metric.value, card);
+      node('p', stateText[metric.state], card);
+    }
+    const notes = node('details');
+    node('summary', '항목별 실측 근거와 안내', notes);
+    for (const [key, title] of Object.entries(metricNames)) {
+      node('p', `${title}: ${current ? pc.metrics[key].note : '현재 조회 결과가 없습니다.'}`, notes);
+    }
+    node('p', '주의 기준: CPU 85% 이상, 메모리 85% 이상, 디스크 여유 10% 미만, 방화벽 일부 꺼짐. 편의를 위한 표시이며 침해·전체 안전 판정이 아닙니다.', root, 'muted');
+    node('h4', 'CPU·메모리 추이 · 실제 수집한 조회만');
+    node('p', '가로축: 조회 시각 · 세로축: 사용률 0~100%. CPU는 청록, 메모리는 보라입니다. 실패·취소·확인 불가 구간은 연결하지 않습니다.', root, 'muted');
+    const svgNode = (tag, attributes, parent, text = null) => {
+      const el = document.createElementNS('http://www.w3.org/2000/svg', tag);
+      for (const [key, value] of Object.entries(attributes)) el.setAttribute(key, String(value));
+      if (text != null) el.textContent = text;
+      parent.appendChild(el);
+      return el;
+    };
+    const samples = pcHistory.filter(row => row.metrics);
+    if (samples.length === 0) node('p', '아직 그래프에 표시할 실측값이 없습니다.');
+    else {
+      const svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
+      for (const [key, value] of Object.entries({ viewBox: '0 0 640 200', width: '100%', height: '200', role: 'img', 'aria-label': '실측 CPU와 메모리 사용률 추이. 수치는 아래 조회 기록에서도 확인할 수 있습니다.' })) svg.setAttribute(key, value);
+      root.appendChild(svg);
+      const graphFont = (document.defaultView?.innerWidth ?? 1280) < 600 ? 24 : 12;
+      const first = pcHistory[0].at, span = Math.max(1, pcHistory.at(-1).at - first);
+      const x = row => 70 + (row.at - first) / span * 528;
+      const y = value => 158 - value * 1.3;
+      for (const value of [0, 50, 100]) {
+        svgNode('line', { x1: 70, x2: 598, y1: y(value), y2: y(value), stroke: '#cbd5e1' }, svg);
+        svgNode('text', { x: 4, y: y(value) + 4, fill: '#475569', 'font-size': graphFont }, svg, `${value}%`);
+      }
+      for (const [key, color] of [['cpu', '#0e7490'], ['memory', '#7e22ce']]) {
+        let previous = null;
+        for (const row of pcHistory) {
+          const value = row.metrics?.[key]?.percent;
+          if (!percent(value)) { previous = null; continue; }
+          const point = { x: x(row), y: y(value) };
+          if (previous) svgNode('line', { x1: previous.x, y1: previous.y, x2: point.x, y2: point.y, stroke: color, 'stroke-width': 2 }, svg);
+          svgNode('circle', { cx: point.x, cy: point.y, r: 3, fill: color }, svg);
+          previous = point;
+        }
+      }
+      svgNode('text', { x: 70, y: 188, fill: '#475569', 'font-size': graphFont }, svg, new Date(first).toLocaleTimeString('ko-KR', { timeZone: 'Asia/Seoul', hour12: false }));
+      svgNode('text', { x: 598, y: 188, fill: '#475569', 'font-size': graphFont, 'text-anchor': 'end' }, svg, new Date(pcHistory.at(-1).at).toLocaleTimeString('ko-KR', { timeZone: 'Asia/Seoul', hour12: false }));
+    }
+    node('h4', `최근 조회 기록 · ${pcHistory.length} / 30회`);
+    node('p', '과거 기록입니다. 이 탭의 메모리에만 보관하고 새로고침하면 지워집니다. 제공 카드에서 한 조회는 여기에 누적하지 않습니다.', root, 'muted');
+    if (pcHistory.length === 0) node('p', '아직 조회 기록이 없습니다.');
+    else {
+      const details = node('details');
+      node('summary', '시각·결과·수치 기록 펼치기', details);
+      const list = node('ol', null, details);
+      for (const row of [...pcHistory].reverse()) {
+        const item = node('li', `${pcTime(row.at)} · ${row.status}`, list);
+        node('p', row.note, item);
+        if (row.metrics) {
+          node('p', `실측 시각: ${pcTime(row.measuredAt)}`, item, 'muted');
+          node('p', `CPU ${row.metrics.cpu.value} · 메모리 ${row.metrics.memory.value}`, item);
+        }
+      }
+    }
+    return root;
+  }
   return {
     renderIdentity({ me, devices, sessions }) {
       const root = document.createElement('section');
@@ -197,6 +384,7 @@ export function createStudentView() {
     },
     renderStatus({ devices, sessions, notifications, diagnostics, mode }) {
       const root = document.createElement('section');
+      root.appendChild(drawDashboard());
       const element = (tag, text, parent = root) => {
         const node = document.createElement(tag);
         if (text != null) node.textContent = text;
