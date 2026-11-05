@@ -4,16 +4,18 @@ export function createStudentView({ api, onChange } = {}) {
   // PC 실측은 이 탭의 메모리에만 보관합니다. 제공 카드와 별도 조회이며 자동 실행하지 않습니다.
   let pc = { status: 'idle' }, pcGeneration = 0, pcPending = false, dashboardHost = null;
   let freshnessTimer = null;
+  let engineMode = 'unknown';
   const pcHistory = [];
   const pcTime = (value) => new Date(value).toLocaleString('ko-KR', { timeZone: 'Asia/Seoul', hour12: false });
   const finite = (value) => typeof value === 'number' && Number.isFinite(value) && value >= 0;
   const percent = (value) => finite(value) && value <= 100;
   const gib = (value) => `${(value / 1024 ** 3).toFixed(1)} GiB`;
   const metricNames = { cpu: 'CPU', memory: '메모리', disk: '디스크 여유', firewall: 'Windows 방화벽' };
-  function pcMetric(key, metric) {
+  const observationNames = { network: '네트워크 구성', firewall: 'Windows 방화벽 설정', events: '최근 Windows 기록' };
+  function pcMetric(key, metric, measuredAt) {
     const missing = { value: '확인 불가', state: 'unknown', note: '응답의 값이나 단위를 확인할 수 없습니다.', percent: null };
     if (metric?.state !== 'ok') {
-      return { ...missing, note: ({ permission_denied: '읽기 권한이 없습니다.', timeout: '조회 시간이 초과됐습니다.', unsupported: '지원하지 않는 항목입니다.' })[metric?.reason] ?? '이번 조회에서 값을 읽지 못했습니다.' };
+      return { ...missing, note: ({ permission_denied: '읽기 권한이 없습니다. 관리자 권한으로 바꾸지 않습니다.', timeout: '조회 시간이 초과됐습니다.', unsupported: '지원하지 않는 항목입니다.', query_failed: '제공 수집기의 읽기 조회가 실패했습니다.', invalid_response: '응답의 형식이나 집계 범위를 확인할 수 없습니다.', cancelled: '조회가 취소됐습니다.' })[metric?.reason] ?? '이번 조회에서 값을 읽지 못했습니다.' };
     }
     if (key === 'cpu' && percent(metric.usagePercent)) return {
       value: `${metric.usagePercent.toFixed(1)}%`, percent: metric.usagePercent,
@@ -26,6 +28,7 @@ export function createStudentView({ api, onChange } = {}) {
       const ratio = amount / metric.totalBytes * 100;
       const attention = key === 'memory' ? ratio >= 85 : ratio < 10;
       return { value: `${ratio.toFixed(1)}%${key === 'disk' ? ' 여유' : ' 사용'}`, percent: key === 'memory' ? ratio : null,
+        amountBytes: amount, totalBytes: metric.totalBytes,
         state: attention ? 'attention' : 'measured', note: `${gib(amount)} / ${gib(metric.totalBytes)}${attention ? key === 'memory' ? ' · 사용량이 높습니다.' : ' · 남은 공간이 적습니다.' : ''}` };
     }
     if (key === 'firewall' && Array.isArray(metric.profiles) && metric.profiles.length === 3
@@ -33,6 +36,20 @@ export function createStudentView({ api, onChange } = {}) {
       const enabled = metric.profiles.filter(p => p.enabled).length;
       return { value: `${enabled} / 3 켜짐`, percent: null, state: enabled === 3 ? 'measured' : 'attention',
         note: metric.profiles.map(p => `${p.name}: ${p.enabled ? '켜짐' : '꺼짐'}`).join(' · ') };
+    }
+    const count = value => Number.isSafeInteger(value) && value >= 0;
+    if (key === 'network' && count(metric.interfaceCount) && count(metric.ipv4Count)) {
+      return { value: `네트워크 인터페이스 ${metric.interfaceCount}개 · IPv4 구성 ${metric.ipv4Count}개`,
+        state: 'measured', percent: null, note: '로컬 구성 개수입니다. 실제 IP 주소를 표시하지 않으며 인터넷 접속·SDP 접근 허용을 확인한 결과가 아닙니다.' };
+    }
+    if (key === 'events' && count(metric.warningCount) && count(metric.errorCount)
+      && metric.warningCount + metric.errorCount <= 5000 && metric.sampleLimit === 5000
+      && typeof metric.truncated === 'boolean' && typeof metric.since === 'string'
+      && /(?:Z|[+-]\d{2}:\d{2})$/.test(metric.since) && Number.isFinite(Date.parse(metric.since))
+      && Date.parse(metric.since) <= measuredAt) {
+      return { value: `경고 ${metric.warningCount}건 · 오류 ${metric.errorCount}건`,
+        state: metric.truncated ? 'partial' : 'measured', percent: null,
+        note: `System·Application 최근 24시간 · ${pcTime(metric.since)}부터 측정 시각까지(한국 시간) · 최대 5,000건${metric.truncated ? ' · 일부 집계: 전체 건수가 아닙니다.' : ' · 응답 집계 범위 내 결과입니다.'}` };
     }
     return missing;
   }
@@ -65,8 +82,10 @@ export function createStudentView({ api, onChange } = {}) {
       if (data?.schema !== 'aleph.on.pc-status.v1' || data.source !== 'local-pc' || !Number.isFinite(measured)
         || Math.abs(Date.now() - measured) > 60000) throw Error('unverified');
       const metrics = Object.fromEntries(Object.keys(metricNames).map(key => [key, pcMetric(key, data.metrics?.[key])]));
+      const observations = Object.fromEntries(Object.keys(observationNames).map(key => [key,
+        key === 'firewall' ? metrics.firewall : pcMetric(key, data.metrics?.[key], measured)]));
       const partial = Object.values(metrics).some(item => item.state === 'unknown');
-      pc = { status: 'ok', measuredAt: measured, metrics };
+      pc = { status: 'ok', measuredAt: measured, metrics, observations };
       rememberPc(partial ? '부분 결과' : '실측 성공', partial ? '읽지 못한 항목이 있습니다.' : '네 항목의 실측값을 확인했습니다.', metrics, measured);
       freshnessTimer = setTimeout(updateDashboard, Math.max(1, measured + 60001 - Date.now()));
       freshnessTimer?.unref?.();
@@ -117,20 +136,82 @@ export function createStudentView({ api, onChange } = {}) {
       : stale ? '마지막 실측이 60초 이상 지났습니다. 현재 값은 확인 불가입니다. 직접 다시 조회하세요.'
       : ({ idle: '조회 전 · 자동 조회하지 않습니다.', loading: '실측 조회 중 · 이전 값을 현재 카드에 표시하지 않습니다.' })[pc.status] ?? pc.note);
     status.setAttribute('role', 'status');
+    const sdp = node('section');
+    sdp.setAttribute('data-aegis-sdp', engineMode ?? 'unknown');
+    node('h4', 'SDP 연결 상태 · PC 실측과 별도', sdp);
+    node('p', engineMode === 'disconnected' ? 'SDP 미연결 · 기존 엔진 연결 없음(disconnected)'
+      : engineMode === 'demo' ? 'SDP 연결 여부 확인 불가 · 예제 모드(demo)는 실제 SDP 연결이 아닙니다.'
+      : 'SDP 연결 여부 확인 불가 · 현재 입력에는 SDP 전용 연결·인증 확인값이 없습니다.', sdp);
+    node('p', 'PC 조회 성공은 SDP 연결·업무 앱 접근 허용·보안 인증 성공을 뜻하지 않습니다.', sdp, 'muted');
     const cards = node('div', null, root, 'row');
     const stateText = { measured: '실측', attention: '주의', unknown: '확인 불가' };
     for (const [key, title] of Object.entries(metricNames)) {
       const card = node('article', null, cards, 'card');
       card.setAttribute('data-aegis-metric', key);
       node('h4', title, card);
-      const metric = current ? pc.metrics[key] : { value: '확인 불가', state: 'unknown', note: pc.status === 'idle' ? '아직 조회하지 않았습니다.' : '현재 조회 결과가 없습니다.' };
+      const metric = current ? pc.metrics[key] : { value: '확인 불가', state: 'unknown', note: stale
+        ? '마지막 실측이 60초 이상 지났습니다.' : pc.status === 'idle' ? '아직 조회하지 않았습니다.'
+        : pc.status === 'loading' ? '이번 실측을 조회하고 있습니다.' : pc.note ?? '현재 조회 결과가 없습니다.' };
       node('strong', metric.value, card);
       node('p', stateText[metric.state], card);
+      node('small', current ? `측정 시각: ${new Date(pc.measuredAt).toLocaleTimeString('en-GB', { timeZone: 'Asia/Seoul', hour12: false })} KST`
+        : '측정 시각: 확인 불가', card);
+      if (current && finite(metric.amountBytes)) node('p', `${gib(metric.amountBytes)} / ${gib(metric.totalBytes)}`, card, 'muted');
+      if (metric.state === 'unknown') node('p', metric.note, card, 'muted');
     }
     const notes = node('details');
     node('summary', '항목별 실측 근거와 안내', notes);
     for (const [key, title] of Object.entries(metricNames)) {
       node('p', `${title}: ${current ? pc.metrics[key].note : '현재 조회 결과가 없습니다.'}`, notes);
+    }
+    const observations = node('section');
+    observations.setAttribute('data-aegis-observations', 'read-only');
+    node('h4', '네트워크·방화벽·Windows 기록 · 읽기 전용', observations);
+    node('p', '이 건수는 침해·공격 탐지 결과가 아닙니다. 방화벽이 켜져 있거나 경고·오류가 0건이어도 PC 전체의 안전을 보장하지 않습니다.', observations);
+    node('p', '기존 제공 PC 조회 응답을 재사용합니다. 설정 변경·권한 상승·공격 시험은 하지 않습니다. 예시 값은 없습니다.', observations, 'muted');
+    for (const [key, title] of Object.entries(observationNames)) {
+      const row = node('article', null, observations);
+      row.setAttribute('data-aegis-observation', key);
+      node('h4', title, row);
+      const info = current ? pc.observations[key] : {
+        value: '확인 불가', state: 'unknown', note: stale ? '실측이 60초 이상 지나 현재 상태를 확인할 수 없습니다.'
+          : pc.status === 'idle' ? '아직 조회하지 않았습니다.' : pc.status === 'loading' ? '이번 조회를 기다리고 있습니다.' : pc.note ?? '현재 결과가 없습니다.',
+      };
+      node('p', `${info.value} · ${info.state === 'partial' ? '일부 집계' : stateText[info.state]}`, row);
+      node('p', current ? `측정 시각: ${pcTime(pc.measuredAt)} (한국 시간) · 출처: 이 PC 제공 조회` : '측정 시각: 확인 불가', row, 'muted');
+      node('p', info.note, row);
+    }
+    const comparison = node('section');
+    comparison.setAttribute('data-aegis-comparison', 'previous-attempt');
+    node('h4', '직전 조회 대비 변화 · 실제 측정 표본', comparison);
+    const previous = pcHistory.at(-2), latest = pcHistory.at(-1);
+    let cannotCompare = '';
+    if (!current) cannotCompare = stale ? '현재 실측이 오래됐습니다. 직접 다시 조회하세요.' : '현재 실측을 확인하지 못했습니다.';
+    else if (!previous) cannotCompare = '완료된 조회가 두 번 필요합니다.';
+    else if (!previous.metrics || !latest?.metrics) cannotCompare = '직전 조회가 실패·취소되어 비교를 건너뛸 수 없습니다.';
+    else if (latest.measuredAt <= previous.measuredAt) cannotCompare = '두 실측 시각이 같거나 순서가 맞지 않습니다.';
+    if (cannotCompare) node('p', `비교 확인 불가: ${cannotCompare}`, comparison);
+    else {
+      node('p', `비교 시각: ${pcTime(previous.measuredAt)} → ${pcTime(latest.measuredAt)} (한국 시간)`, comparison);
+      for (const key of ['cpu', 'memory', 'disk']) {
+        const before = previous.metrics[key], after = latest.metrics[key], title = metricNames[key];
+        if (before.state === 'unknown' || after.state === 'unknown') {
+          node('p', `${title}: 비교 확인 불가 — ${before.state === 'unknown' ? '직전' : '현재'} 값: ${before.state === 'unknown' ? before.note : after.note}`, comparison);
+          continue;
+        }
+        if (key !== 'cpu' && before.totalBytes !== after.totalBytes) {
+          node('p', `${title}: 비교 확인 불가 — 전체 용량이 변경돼 같은 기준인지 확인할 수 없습니다.`, comparison);
+          continue;
+        }
+        const delta = key === 'disk' ? (after.amountBytes - before.amountBytes) / 1024 ** 3 : after.percent - before.percent;
+        const unit = key === 'disk' ? ' GiB' : '%p', precision = key === 'disk' ? 2 : 1;
+        const rounded = Math.abs(delta).toFixed(precision);
+        const size = Number(rounded) === 0 && delta !== 0 ? `${(10 ** -precision).toFixed(precision)}${unit} 미만` : `${rounded}${unit}`;
+        const change = delta === 0 ? `변화 없음(0${unit})` : `${size} ${delta > 0 ? '증가' : '감소'}`;
+        const values = key === 'disk' ? `${gib(before.amountBytes)} → ${gib(after.amountBytes)}` : `${before.value} → ${after.value}`;
+        node('p', `${title}: ${values} · ${change}`, comparison);
+      }
+      node('p', 'CPU·메모리는 사용률 차이(%p), 디스크는 여유 공간 차이(GiB)입니다. 두 표본 사이의 변화이며 원인·지속 추세·PC 안전을 판정하지 않습니다.', comparison, 'muted');
     }
     node('p', '주의 기준: CPU 85% 이상, 메모리 85% 이상, 디스크 여유 10% 미만, 방화벽 일부 꺼짐. 편의를 위한 표시이며 침해·전체 안전 판정이 아닙니다.', root, 'muted');
     node('h4', 'CPU·메모리 추이 · 실제 수집한 조회만');
@@ -384,6 +465,7 @@ export function createStudentView({ api, onChange } = {}) {
     },
     renderStatus({ devices, sessions, notifications, diagnostics, mode }) {
       const root = document.createElement('section');
+      engineMode = mode;
       root.appendChild(drawDashboard());
       const element = (tag, text, parent = root) => {
         const node = document.createElement(tag);
