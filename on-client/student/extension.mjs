@@ -5,6 +5,7 @@ export function createStudentView({ api, onChange } = {}) {
   let pc = { status: 'idle' }, pcGeneration = 0, pcPending = false, dashboardHost = null;
   let freshnessTimer = null;
   let engineMode = 'unknown';
+  const dashboardDetails = new Set();
   const pcHistory = [];
   const pcTime = (value) => new Date(value).toLocaleString('ko-KR', { timeZone: 'Asia/Seoul', hour12: false });
   const finite = (value) => typeof value === 'number' && Number.isFinite(value) && value >= 0;
@@ -62,7 +63,10 @@ export function createStudentView({ api, onChange } = {}) {
     if (dashboardHost?.isConnected) {
       const old = dashboardHost;
       old.replaceWith(drawDashboard());
-      if (focusKey) dashboardHost.querySelector(`[data-aegis-control="${focusKey}"]`)?.focus({ preventScroll: true });
+      if (focusKey) {
+        const next = dashboardHost.querySelector(`[data-aegis-control="${focusKey}"]`);
+        (next && !next.disabled ? next : dashboardHost.querySelector('[data-aegis-control="read"]'))?.focus({ preventScroll: true });
+      }
     } else if (typeof onChange === 'function') onChange();
   }
   async function readPc() {
@@ -110,6 +114,7 @@ export function createStudentView({ api, onChange } = {}) {
   function drawDashboard() {
     const root = document.createElement('section');
     root.setAttribute('data-aegis-dashboard', 'local-pc');
+    root.setAttribute('aria-busy', pc.status === 'loading' ? 'true' : 'false');
     dashboardHost = root;
     const node = (tag, text, parent = root, className = '') => {
       const el = document.createElement(tag);
@@ -118,16 +123,33 @@ export function createStudentView({ api, onChange } = {}) {
       parent.appendChild(el);
       return el;
     };
+    const details = (key, label) => {
+      const box = document.createElement('details');
+      box.setAttribute('data-aegis-detail', key);
+      box.open = dashboardDetails.has(key);
+      const summary = node('summary', label, box);
+      summary.setAttribute('data-aegis-control', `details-${key}`);
+      box.addEventListener('toggle', () => {
+        if (box.open) dashboardDetails.add(key);
+        else dashboardDetails.delete(key);
+      });
+      return box;
+    };
     node('h3', '이지스 · 내 PC 실측 대시보드');
     node('p', '학생이 추가한 실측 요약·추이·기록입니다. 아래 제공 기능과 별도로 조회합니다. 예시 값은 사용하지 않습니다.', root, 'muted');
     const controls = node('div', null, root, 'row');
     for (const [label, key, action, disabled] of [
-      ['PC 실측 조회', 'read', readPc, pcPending],
+      ['다시 조회', 'read', readPc, false],
       ['조회 화면 취소', 'cancel', cancelPc, !pcPending || pc.status !== 'loading'],
     ]) {
       const button = node('button', label, controls, 'btn');
       button.type = 'button'; button.disabled = disabled;
       button.setAttribute('data-aegis-control', key);
+      if (key === 'read') {
+        // disabled로 초점을 잃지 않게 하되 readPc의 중복 요청 방지는 유지합니다.
+        button.setAttribute('aria-disabled', pcPending ? 'true' : 'false');
+        button.setAttribute('aria-describedby', 'aegis-pc-status');
+      }
       button.addEventListener('click', action);
     }
     const stale = pc.status === 'ok' && Date.now() - pc.measuredAt > 60000;
@@ -136,7 +158,8 @@ export function createStudentView({ api, onChange } = {}) {
       : stale ? '마지막 실측이 60초 이상 지났습니다. 현재 값은 확인 불가입니다. 직접 다시 조회하세요.'
       : ({ idle: '조회 전 · 자동 조회하지 않습니다.', loading: '실측 조회 중 · 이전 값을 현재 카드에 표시하지 않습니다.' })[pc.status] ?? pc.note);
     status.setAttribute('role', 'status');
-    const sdp = node('section');
+    status.setAttribute('id', 'aegis-pc-status');
+    const sdp = document.createElement('section');
     sdp.setAttribute('data-aegis-sdp', engineMode ?? 'unknown');
     node('h4', 'SDP 연결 상태 · PC 실측과 별도', sdp);
     node('p', engineMode === 'disconnected' ? 'SDP 미연결 · 기존 엔진 연결 없음(disconnected)'
@@ -159,12 +182,26 @@ export function createStudentView({ api, onChange } = {}) {
       if (current && finite(metric.amountBytes)) node('p', `${gib(metric.amountBytes)} / ${gib(metric.totalBytes)}`, card, 'muted');
       if (metric.state === 'unknown') node('p', metric.note, card, 'muted');
     }
-    const notes = node('details');
-    node('summary', '항목별 실측 근거와 안내', notes);
+    const failures = current
+      ? Object.entries({ ...pc.metrics, ...pc.observations }).filter(([, item]) => item.state === 'unknown')
+      : pc.status === 'idle' || pc.status === 'loading' ? []
+        : Object.keys({ ...metricNames, ...observationNames }).map(key => [key, { note: stale ? '실측이 60초 이상 지났습니다.' : pc.note ?? '현재 실측을 확인할 수 없습니다.' }]);
+    if (failures.length > 0) {
+      const recovery = node('section');
+      recovery.setAttribute('data-aegis-recovery', 'unavailable');
+      node('h4', '실패한 항목 · 확인 불가', recovery);
+      for (const [key, item] of failures) {
+        node('p', `${({ ...metricNames, ...observationNames })[key]}: ${item.note}`, recovery);
+        node('p', item.note.includes('권한')
+          ? '다음 할 일: 관리자 권한으로 바꾸지 말고 일반 권한의 조회 범위를 담당자에게 확인하세요.'
+          : '다음 할 일: 앱 실행 상태를 확인한 뒤 「다시 조회」를 누르세요. 계속 실패하면 해당 항목과 안내 문구를 전달하세요.', recovery, 'muted');
+      }
+    }
+    const notes = details('notes', '항목별 실측 근거와 안내');
     for (const [key, title] of Object.entries(metricNames)) {
       node('p', `${title}: ${current ? pc.metrics[key].note : '현재 조회 결과가 없습니다.'}`, notes);
     }
-    const observations = node('section');
+    const observations = document.createElement('section');
     observations.setAttribute('data-aegis-observations', 'read-only');
     node('h4', '네트워크·방화벽·Windows 기록 · 읽기 전용', observations);
     node('p', '이 건수는 침해·공격 탐지 결과가 아닙니다. 방화벽이 켜져 있거나 경고·오류가 0건이어도 PC 전체의 안전을 보장하지 않습니다.', observations);
@@ -213,7 +250,7 @@ export function createStudentView({ api, onChange } = {}) {
       }
       node('p', 'CPU·메모리는 사용률 차이(%p), 디스크는 여유 공간 차이(GiB)입니다. 두 표본 사이의 변화이며 원인·지속 추세·PC 안전을 판정하지 않습니다.', comparison, 'muted');
     }
-    node('p', '주의 기준: CPU 85% 이상, 메모리 85% 이상, 디스크 여유 10% 미만, 방화벽 일부 꺼짐. 편의를 위한 표시이며 침해·전체 안전 판정이 아닙니다.', root, 'muted');
+    node('p', '주의 기준: CPU 85% 이상, 메모리 85% 이상, 디스크 여유 10% 미만, 방화벽 일부 꺼짐. 편의를 위한 표시이며 침해·전체 안전 판정이 아닙니다.', notes, 'muted');
     node('h4', 'CPU·메모리 추이 · 실제 수집한 조회만');
     node('p', '가로축: 조회 시각 · 세로축: 사용률 0~100%. CPU는 청록, 메모리는 보라입니다. 실패·취소·확인 불가 구간은 연결하지 않습니다.', root, 'muted');
     const svgNode = (tag, attributes, parent, text = null) => {
@@ -255,9 +292,9 @@ export function createStudentView({ api, onChange } = {}) {
     node('p', '과거 기록입니다. 이 탭의 메모리에만 보관하고 새로고침하면 지워집니다. 제공 카드에서 한 조회는 여기에 누적하지 않습니다.', root, 'muted');
     if (pcHistory.length === 0) node('p', '아직 조회 기록이 없습니다.');
     else {
-      const details = node('details');
-      node('summary', '시각·결과·수치 기록 펼치기', details);
-      const list = node('ol', null, details);
+      const history = details('history', '시각·결과·수치 기록 펼치기');
+      root.appendChild(history);
+      const list = node('ol', null, history);
       for (const row of [...pcHistory].reverse()) {
         const item = node('li', `${pcTime(row.at)} · ${row.status}`, list);
         node('p', row.note, item);
@@ -267,6 +304,11 @@ export function createStudentView({ api, onChange } = {}) {
         }
       }
     }
+    const context = details('context', `네트워크·방화벽·Windows 기록과 SDP 상세${engineMode === 'disconnected' ? ' · SDP 미연결' : ''}`);
+    context.appendChild(sdp);
+    context.appendChild(observations);
+    root.appendChild(context);
+    root.appendChild(notes);
     return root;
   }
   return {
